@@ -8,6 +8,7 @@ pub struct TypeChecker {
     current: usize,
 }
 
+#[allow(dead_code)]
 impl TypeChecker {
     pub fn new() -> Self {
         Self { current: 0 }
@@ -124,8 +125,8 @@ fn unify(t1: &Type, t2: &Type) -> Result<Subst, String> {
         ) => {
             let s1 = unify(from1, from2)?;
             let s2 = unify(
-                &apply_subst_to_type(&s1, from1),
-                &apply_subst_to_type(&s1, from1),
+                &apply_subst_to_type(&s1, to1),
+                &apply_subst_to_type(&s1, to2),
             )?;
             Ok(compose_subst(s1, s2))
         }
@@ -156,5 +157,63 @@ fn contains(t: &Type, name: &String) -> bool {
         Type::TNamed(_) => false,
         Type::TVar(n) => n == name,
         Type::TFun { from, to } => contains(from, name) || contains(to, name),
+    }
+}
+mod test {
+
+    #[test]
+    fn inference() {
+        use crate::{
+            ast::{Expr, Literal, Type},
+            typechecker::TypeChecker,
+        };
+        use std::collections::HashMap;
+        let mut ctx = HashMap::new();
+        let mut tchecker = TypeChecker::new();
+        ctx.insert(
+            "id".to_string(),
+            Type::TFun {
+                from: Box::new(Type::TVar("a1".to_string())),
+                to: Box::new(Type::TVar("a1".to_string())),
+            },
+        );
+        let call = Expr::ECall {
+            func: Box::new(Expr::EVar("id".to_string())),
+            arg: Box::new(Expr::ELit(Literal::LInt(15.0))),
+        };
+        let call2 = Expr::ECall {
+            func: Box::new(Expr::EVar("id".to_string())),
+            arg: Box::new(Expr::ELit(Literal::LBool(true))),
+        };
+        assert_eq!(
+            Ok((
+                Type::TFun {
+                    from: Box::new(Type::TVar("a1".to_string())),
+                    to: Box::new(Type::TVar("a1".to_string()))
+                },
+                HashMap::new()
+            )),
+            tchecker.infer(
+                &Expr::EFun {
+                    param: "x".to_string(),
+                    body: Box::new(Expr::EVar("x".to_string()))
+                },
+                &mut ctx
+            )
+        );
+        let mut hm = HashMap::new();
+        hm.insert("a1".to_string(), Type::TNamed("Int".to_string()));
+        hm.insert("a2".to_string(), Type::TNamed("Int".to_string()));
+        assert_eq!(
+            Ok((Type::TNamed("Int".to_string()), hm.clone())),
+            tchecker.infer(&call, &mut ctx)
+        );
+        let mut hm = HashMap::new();
+        hm.insert("a1".to_string(), Type::TNamed("Bool".to_string()));
+        hm.insert("a3".to_string(), Type::TNamed("Bool".to_string()));
+        assert_eq!(
+            Ok((Type::TNamed("Bool".to_string()), hm.clone())),
+            tchecker.infer(&call2, &mut ctx)
+        );
     }
 }

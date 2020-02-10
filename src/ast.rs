@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Expr {
     EVar(String),
@@ -21,6 +22,8 @@ pub enum Expr {
     },
     EEmpty,
 }
+
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Literal {
     LInt(f64),
