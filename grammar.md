@@ -1,0 +1,5 @@
+Grammar:
+
+```
+atom = NUMBER | String
+```

@@ -4,4 +4,9 @@ mod ast;
 mod lexer;
 mod parser;
 mod typechecker;
-fn main() {}
+use lexer::Lexer;
+
+fn main() {
+    let lexer = Lexer::new();
+    println!("{:#?}", lexer.tokenize(r#"fun a(){ print("abc\nabc")}"#));
+}
