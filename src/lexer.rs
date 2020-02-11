@@ -20,7 +20,7 @@ pub enum Token {
 pub enum ErrorKind {
     Eof,
     Failure,
-    ParsingError(ParserError),
+    LexingError(ParserError),
 }
 
 #[derive(Debug, PartialEq)]
@@ -46,7 +46,7 @@ impl<'a> Lexer {
                 match self.take_num(&input) {
                     Ok(x) => tokens.push(x),
                     Err(e) => match e {
-                        ErrorKind::ParsingError(_) => return Err(e),
+                        ErrorKind::LexingError(_) => return Err(e),
                         _ => unreachable!(),
                     },
                 }
@@ -134,7 +134,7 @@ impl<'a> Lexer {
                             continue;
                         }
                         'u' => {
-                            return Err(ErrorKind::ParsingError(ParserError {
+                            return Err(ErrorKind::LexingError(ParserError {
                                 reason: format!("Unicode escape sequence isn't available yet"),
                                 range: self.current - 1..self.current,
                             }))
@@ -143,7 +143,7 @@ impl<'a> Lexer {
                     },
                     None => (),
                 }
-                return Err(ErrorKind::ParsingError(ParserError {
+                return Err(ErrorKind::LexingError(ParserError {
                     reason: format!("Unknown escape sequence"),
                     range: self.current - 1..self.current,
                 }));
@@ -152,7 +152,7 @@ impl<'a> Lexer {
                 self.advance(1);
             }
         }
-        Err(ErrorKind::ParsingError(ParserError {
+        Err(ErrorKind::LexingError(ParserError {
             reason: format!("Unclosed string delimiter"),
             range: self.current - 1..self.current,
         }))
@@ -202,7 +202,7 @@ impl<'a> Lexer {
                 cptr += 1;
             } else {
                 if c.is_alphabetic() {
-                    return Err(ErrorKind::ParsingError(ParserError {
+                    return Err(ErrorKind::LexingError(ParserError {
                         reason: format!("Invalid digit"),
                         range: self.current..self.current + cptr + 1,
                     }));
