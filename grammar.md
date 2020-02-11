@@ -41,9 +41,10 @@ let = "let " ws identifier ws "=" ws expr
 
 call = identifier ( "(" (expr ws "," ws )+ ")" | (expr ws1)+)
 
-function = "fun" ws identifier "(" ws (identifier [ws ":" ws identifier] ws ",")+ ws ")" ws block
+param = identifier [ws ":" ws identifier]
+function = "fun" ws identifier "(" ws [ (param ws ",")+ ] param   ws ")" [ws "->" identifier] ws block
 
-lambda = "fun" ws  "(" ws ( identifier [ ws ":" ws identifier ] ws "," )+ ws ")" ws block
+lambda = "fun" ws  "(" ws [( param ws "," )+] param ws ")" ws block
 
 condition = "if" ws1 expr ws block [ ws "else if" ws1 expr ws block ]+ [ ws "else" ws block ]
 
