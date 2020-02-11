@@ -1,7 +1,11 @@
 '+' means one or more
+
 '|' is a logical or
+
 'x'.'y' is a range
+
 '-' specify an exception
+
 '[' foo ']' is an optional part of the pattern
 
 ```
