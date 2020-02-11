@@ -1,4 +1,7 @@
-use crate::lexer::{ParserError, Token};
+use crate::{
+    ast::{Expr, Literal},
+    lexer::{ParserError, Token},
+};
 
 pub trait Parser<T> = Fn(Vec<Token>) -> ParserResult<T>;
 
@@ -6,6 +9,7 @@ pub enum ParserResult<T> {
     Ok(T, Vec<Token>),
     Failure(Vec<Token>),
     Error(ParserError),
+    Empty,
 }
 
 impl<T> ParserResult<T> {
@@ -25,7 +29,7 @@ impl<T> ParserResult<T> {
     }
 }
 
-pub fn many1<T>(mut predicate: impl Parser<Token>) -> impl Parser<Vec<Token>> {
+pub fn many1<T>(predicate: impl Parser<Expr>) -> impl Parser<Vec<Expr>> {
     move |tokens| {
         let mut result_tokens = vec![];
         match predicate(tokens) {
@@ -40,13 +44,24 @@ pub fn many1<T>(mut predicate: impl Parser<Token>) -> impl Parser<Vec<Token>> {
                 match result {
                     ParserResult::Failure(tokens) => ParserResult::Ok(result_tokens, tokens),
                     ParserResult::Error(e) => ParserResult::Error(e),
+                    ParserResult::Empty => ParserResult::Ok(result_tokens, tokens),
                     _ => unreachable!(),
                 }
             }
             ParserResult::Error(e) => ParserResult::Error(e),
             ParserResult::Failure(e) => ParserResult::Failure(e),
+            ParserResult::Empty =>  ParserResult::Empty,
         }
     }
 }
 
-//fn expr(tokens: Vec<Token>) -> Parser {}
+fn atom(tokens: Vec<Token>) -> impl Parser<Expr> {
+    |tokens: Vec<Token>| {
+        if tokens.is_empty(){
+            return ParserResult::Empty;
+        }
+        match tokens[0]{
+            Token::Bool()
+        }
+    }
+}

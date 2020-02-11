@@ -26,7 +26,7 @@ characters = character+
 
 string = "\"" characters "\""
 
-atom = int | string | bool
+atom = int | string | bool | identifier
 
 operator = ('.' | '/' | '<' | '>' | '-' | ';' | ',' | ':' | '$' | '*' | '+' | '#' | '~'
         | '^' | '@' | '!' | '%')+

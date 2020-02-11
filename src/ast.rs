@@ -20,9 +20,16 @@ pub enum Expr {
         true_branch: Box<Expr>,
         false_branch: Box<Expr>,
     },
+    EOperation{
+        operation: Vec<OpTerm>,
+    },
     EEmpty,
 }
-
+#[derive(Debug, Clone)]
+pub enum OpTerm{
+    Op(String),
+    Term(Expr),
+}
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Literal {

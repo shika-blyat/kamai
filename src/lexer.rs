@@ -1,4 +1,4 @@
-use std::{iter::Peekable, ops::Range, str::Chars};
+use std::ops::Range;
 // Variant prefixed by a `K` are keyword
 #[derive(Debug, Clone, PartialEq)]
 pub enum Token {
@@ -18,7 +18,6 @@ pub enum Token {
 
 #[derive(Debug, PartialEq)]
 pub enum ErrorKind {
-    Eof,
     Failure,
     LexingError(ParserError),
 }
@@ -229,16 +228,6 @@ impl<'a> Lexer {
         } else {
             None
         }
-    }
-    fn next(&self, input: &Vec<char>) -> Option<char> {
-        if self.current + 1 < input.len() {
-            Some(input[self.current + 1])
-        } else {
-            None
-        }
-    }
-    fn last(&self, input: &Vec<char>) -> char {
-        input[self.current - 1]
     }
     fn advance(&mut self, num: usize) {
         self.current += num;
