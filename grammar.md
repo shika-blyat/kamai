@@ -50,7 +50,7 @@ condition = "if" ws1 expr ws block [ ws "else if" ws1 expr ws block ]+ [ ws "els
 
 operation = expr (ws operator ws expr)+
 
-expr = let | call | atom | lambda | operation | condition | "()"
+expr = let | call | atom | lambda | operation | block | condition | "()"
 
 instructions = (ws expr ws ";")+
 
