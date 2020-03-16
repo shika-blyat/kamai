@@ -23,7 +23,15 @@ impl Token {
         }
     }
 }
-
+pub struct LexerError {
+    reason: String,
+    range: Range<usize>,
+}
+impl LexerError {
+    pub fn new(reason: String, range: Range<usize>) -> Self {
+        Self { reason, range }
+    }
+}
 pub struct Lexer {
     code: Vec<char>,
     current: usize,
@@ -35,7 +43,7 @@ impl Lexer {
             current: 0,
         }
     }
-    pub fn tokenize(mut self) -> Result<Vec<Token>, String> {
+    pub fn tokenize(mut self) -> Result<Vec<Token>, LexerError> {
         let mut tokens = vec![];
         loop {
             match self.current() {
@@ -76,7 +84,12 @@ impl Lexer {
                             "=".to_string(),
                         )),
                         ' ' => (),
-                        c => return Err(format!("Unexpected char `{}`", c)),
+                        c => {
+                            return Err(LexerError::new(
+                                format!("Unexpected character {}", c),
+                                self.current..self.current + 1,
+                            ))
+                        }
                     }
                     self.current += 1;
                 }
