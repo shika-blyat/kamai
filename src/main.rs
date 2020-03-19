@@ -6,7 +6,7 @@ use parser::{lexer::Lexer, parser::Parser};
 fn main() {
     let mut lexer = Lexer::new(
         "
-            add x y = x + y;
+            {x + y; +}
         "
         .to_string(),
     );
@@ -14,5 +14,5 @@ fn main() {
     println!("{:#?}", tokens);
     let tokens = tokens.unwrap();
     let mut parser = Parser::new(tokens);
-    println!("{:#?}", parser.parse())
+    println!("{:#?}", parser.expr())
 }

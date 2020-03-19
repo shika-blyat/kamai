@@ -27,11 +27,18 @@ impl Parser {
             .or_else(|_| self.func_call())
             .or_else(|_| self.brackets())
             .or_else(|_| self.parenthesis())
-            .or_else(|_| {
-                Err(ParserError::new(
-                    ParserReason::Custom(format!("Expected expression")),
+            .or_else(|_| match self.current() {
+                Some(tok) => {
+                    let range = tok.range.clone();
+                    Err(ParserError::new(
+                        ParserReason::Expected(format!("Unexpected {:#?}", tok)),
+                        range,
+                    ))
+                }
+                None => Err(ParserError::new(
+                    ParserReason::Expected("Unexpected EOF".to_string()),
                     self.current..self.current + 1,
-                ))
+                )),
             })
     }
     pub fn func_decl(&mut self) -> Result<(String, Expr), ParserError> {
@@ -86,7 +93,15 @@ impl Parser {
             return Ok(shunting_yard(left)?);
         } else {
             let op = op.unwrap();
-            let right = self.atom()?;
+            let right = self.atom().map_err(|_| {
+                ParserError::new(
+                    ParserReason::IncorrectToken(format!(
+                        "Missing right operand for operator {:#?}",
+                        op
+                    )),
+                    self.current..self.current + 1,
+                )
+            })?;
             let precedence = find_op_precedence(&op);
             left.push(OpTerm::Op { op, precedence });
             left.push(OpTerm::Expr(right));
@@ -105,7 +120,7 @@ impl Parser {
                 Ok(Expr::Val(Literal::Identifier(s)))
             }
             _ => Err(ParserError::new(
-                ParserReason::Custom(format!("Expected identifier")),
+                ParserReason::Expected(format!("Expected identifier")),
                 self.current..self.current + 1,
             )),
         }
@@ -118,7 +133,7 @@ impl Parser {
                 Ok(Expr::Val(Literal::Int(num)))
             }
             _ => Err(ParserError::new(
-                ParserReason::Custom(format!("Expected number")),
+                ParserReason::Expected(format!("Expected number")),
                 self.current..self.current + 1,
             )),
         }
@@ -135,7 +150,7 @@ impl Parser {
                 }
             }
             _ => Err(ParserError::new(
-                ParserReason::Custom(format!("Expected operator")),
+                ParserReason::Expected(format!("Expected operator")),
                 self.current..self.current + 1,
             )),
         }
@@ -148,7 +163,7 @@ impl Parser {
                 Ok(())
             }
             _ => Err(ParserError::new(
-                ParserReason::Custom(format!("Expected `;`")),
+                ParserReason::Expected(format!("Expected `;`")),
                 self.current..self.current + 1,
             )),
         }
@@ -161,7 +176,7 @@ impl Parser {
                 Ok(())
             }
             _ => Err(ParserError::new(
-                ParserReason::Custom(format!("Expected `=`")),
+                ParserReason::Expected(format!("Expected `=`")),
                 self.current..self.current + 1,
             )),
         }
@@ -172,21 +187,44 @@ impl Parser {
             TokenElem::BracketPair(tokens) => {
                 self.current += 1;
                 let mut parser = Parser::new(tokens);
-                let mut bracket_expr = Expr::BracketExpr {
-                    left: Box::new(Expr::Val(Literal::Unit)),
-                    right: Box::new(parser.expr().unwrap_or(Expr::Val(Literal::Unit))),
+                let expr = match parser.expr() {
+                    Ok(x) => OpTerm::Expr(x),
+                    Err(parser_err) => match parser_err.reason {
+                        ParserReason::IncorrectToken(_) => return Err(parser_err),
+                        _ => OpTerm::Expr(Expr::Val(Literal::Unit)),
+                    },
                 };
+                let mut bracket_expr = vec![expr];
                 while parser.semicolon().is_ok() {
-                    bracket_expr = Expr::BracketExpr {
-                        left: Box::new(bracket_expr),
-                        right: Box::new(parser.expr().unwrap_or(Expr::Val(Literal::Unit))),
+                    match parser.expr() {
+                        Ok(expr) => {
+                            bracket_expr.push(OpTerm::Op {
+                                op: Op::Semicolon,
+                                precedence: 0,
+                            });
+                            bracket_expr.push(OpTerm::Expr(expr));
+                        }
+                        Err(parser_err) => match parser_err.reason {
+                            ParserReason::IncorrectToken(_) => return Err(parser_err),
+                            _ => match bracket_expr.last() {
+                                Some(OpTerm::Expr(Expr::Val(Literal::Unit))) => (),
+                                _ => {
+                                    bracket_expr.push(OpTerm::Op {
+                                        op: Op::Semicolon,
+                                        precedence: 0,
+                                    });
+                                    bracket_expr.push(OpTerm::Expr(Expr::Val(Literal::Unit)));
+                                }
+                            },
+                        },
                     }
                 }
+                println!("{:#?}", bracket_expr);
                 if parser.is_empty() {
-                    Ok(bracket_expr)
+                    Ok(shunting_yard(bracket_expr)?)
                 } else {
                     Err(ParserError::new(
-                        ParserReason::Custom(format!(
+                        ParserReason::Expected(format!(
                             "Unexpected {}",
                             parser.tokens[parser.current].lexeme
                         )),
@@ -195,7 +233,7 @@ impl Parser {
                 }
             }
             _ => Err(ParserError::new(
-                ParserReason::Custom(format!("Expected brackets")),
+                ParserReason::Expected(format!("Expected brackets")),
                 self.current..self.current + 1,
             )),
         }
@@ -211,7 +249,7 @@ impl Parser {
                     expr
                 } else {
                     Err(ParserError::new(
-                        ParserReason::Custom(format!(
+                        ParserReason::Expected(format!(
                             "Unexpected {}",
                             parser.tokens[parser.current].lexeme
                         )),
@@ -220,7 +258,7 @@ impl Parser {
                 }
             }
             _ => Err(ParserError::new(
-                ParserReason::Custom(format!("Expected parenthesis")),
+                ParserReason::Expected(format!("Expected parenthesis")),
                 self.current..self.current + 1,
             )),
         }
@@ -237,7 +275,7 @@ impl Parser {
             Some(x) => Ok(x.elem),
             None => {
                 return Err(ParserError::new(
-                    ParserReason::Custom(msg),
+                    ParserReason::Expected(msg),
                     self.current..self.current,
                 ))
             }
@@ -252,5 +290,6 @@ fn find_op_precedence(op: &Op) -> usize {
     match op {
         Op::Add => 5,
         Op::Mul => 10,
+        Op::Semicolon => 0,
     }
 }

@@ -29,6 +29,7 @@ pub enum OpTerm {
 pub enum Op {
     Add,
     Mul,
+    Semicolon,
 }
 #[derive(Clone, Debug)]
 pub enum Literal {
@@ -38,12 +39,13 @@ pub enum Literal {
 }
 #[derive(Debug)]
 pub enum ParserReason {
-    Custom(String),
+    Expected(String),
+    IncorrectToken(String),
 }
 #[derive(Debug)]
 pub struct ParserError {
-    reason: ParserReason,
-    range: Range<usize>,
+    pub reason: ParserReason,
+    pub range: Range<usize>,
 }
 impl ParserError {
     pub fn new(reason: ParserReason, range: Range<usize>) -> Self {
