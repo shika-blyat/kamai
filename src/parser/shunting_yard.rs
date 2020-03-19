@@ -1,4 +1,4 @@
-use super::parser::{Expr, Op, OpTerm, ParserError};
+use super::ast::{Expr, Op, OpTerm, ParserError};
 
 fn add_infix_op(ast: &mut Vec<Expr>, op: Op) {
     let roperand = ast.pop().unwrap();
