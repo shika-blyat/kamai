@@ -2,12 +2,11 @@ mod parser;
 
 use parser::{lexer::Lexer, parser::Parser};
 
-
 // TODO: Add bracket expression parsing and `;` operator and then typechecking
 fn main() {
     let mut lexer = Lexer::new(
         "
-            x + {y a} * 3
+            x + { 1 + 2; } * 3
         "
         .to_string(),
     );

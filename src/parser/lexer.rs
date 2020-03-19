@@ -6,7 +6,9 @@ pub enum TokenElem {
     Identifier(String),
     Equal,
     Op(String),
+    Semicolon,
     BracketPair(Vec<Token>),
+    ParenthesisPair(Vec<Token>),
 }
 #[derive(Debug, Clone, PartialEq)]
 pub struct Token {
@@ -44,21 +46,17 @@ impl Lexer {
             current: 0,
         }
     }
-    pub fn tokenize(&mut self) -> Result<Vec<Token>, LexerError> {
+    pub fn tokenize_internal(
+        &mut self,
+        is_inside_bracket: bool,
+        is_inside_parenthesis: bool,
+    ) -> Result<Vec<Token>, LexerError> {
         let mut tokens = vec![];
         loop {
             match self.current() {
                 Some(c) => {
                     if c.is_ascii_digit() {
                         tokens.push(self.consume_num());
-                        continue;
-                    } else if c == '+' || c == '-' || c == '/' || c == '*' {
-                        tokens.push(Token::new(
-                            TokenElem::Op(c.to_string()),
-                            self.current..self.current + 1,
-                            c.to_string(),
-                        ));
-                        self.current += 1;
                         continue;
                     } else if c.is_ascii_alphabetic() {
                         tokens.push(self.consume_identifier());
@@ -73,8 +71,38 @@ impl Lexer {
                             self.current..self.current + 1,
                             "=".to_string(),
                         )),
+                        '(' => tokens.push(self.consume_parenthesis()?),
+                        ')' => {
+                            if is_inside_parenthesis {
+                                return Ok(tokens);
+                            } else {
+                                return Err(LexerError::new(
+                                    "Unmatched closing parenthesis".to_string(),
+                                    self.current..self.current + 1,
+                                ));
+                            }
+                        }
                         '{' => tokens.push(self.consume_brackets()?),
-                        '}' => return Ok(tokens),
+                        '}' => {
+                            if is_inside_bracket {
+                                return Ok(tokens);
+                            } else {
+                                return Err(LexerError::new(
+                                    "Unmatched closing bracket".to_string(),
+                                    self.current..self.current + 1,
+                                ));
+                            }
+                        }
+                        ';' => tokens.push(Token::new(
+                            TokenElem::Semicolon,
+                            self.current..self.current + 1,
+                            c.to_string(),
+                        )),
+                        '+' | '-' | '/' | '*' => tokens.push(Token::new(
+                            TokenElem::Op(c.to_string()),
+                            self.current..self.current + 1,
+                            c.to_string(),
+                        )),
                         c => {
                             return Err(LexerError::new(
                                 format!("Unexpected character {}", c),
@@ -87,6 +115,9 @@ impl Lexer {
                 None => return Ok(tokens),
             }
         }
+    }
+    pub fn tokenize(&mut self) -> Result<Vec<Token>, LexerError> {
+        self.tokenize_internal(false, false)
     }
     pub fn consume_num(&mut self) -> Token {
         let mut num = self.current().unwrap().to_string();
@@ -114,12 +145,23 @@ impl Lexer {
     pub fn consume_brackets(&mut self) -> Result<Token, LexerError> {
         let start = self.current;
         self.current += 1;
-        let tokens_in_bracket = self.tokenize()?;
-        self.current += 1;
+        let tokens_in_bracket = self.tokenize_internal(true, false)?;
         Ok(Token::new(
             TokenElem::BracketPair(tokens_in_bracket),
             start..self.current,
-            self.code[start..self.current]
+            self.code[start..self.current + 1]
+                .into_iter()
+                .collect::<String>(),
+        ))
+    }
+    pub fn consume_parenthesis(&mut self) -> Result<Token, LexerError> {
+        let start = self.current;
+        self.current += 1;
+        let tokens_in_bracket = self.tokenize_internal(false, true)?;
+        Ok(Token::new(
+            TokenElem::ParenthesisPair(tokens_in_bracket),
+            start..self.current,
+            self.code[start..self.current + 1]
                 .into_iter()
                 .collect::<String>(),
         ))
@@ -144,10 +186,6 @@ impl Lexer {
                 ident_c,
             ),
         }
-    }
-    pub fn next(&mut self) -> Option<char> {
-        self.current += 1;
-        self.current()
     }
     pub fn current(&self) -> Option<char> {
         if self.is_empty() {

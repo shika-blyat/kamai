@@ -17,6 +17,18 @@ pub fn shunting_yard(tokens: Vec<OpTerm>) -> Result<Expr, ParserError> {
         match i {
             OpTerm::Expr(Expr::Val(val)) => ast.push(Expr::Val(val)),
             OpTerm::Expr(call @ Expr::Call { fun: _, arg: _ }) => ast.push(call),
+            OpTerm::Expr(bracket_expr @ Expr::BracketExpr { left: _, right: _ }) => {
+                ast.push(bracket_expr)
+            }
+            OpTerm::Expr(
+                bin_op
+                @
+                Expr::BinOp {
+                    op: _,
+                    left: _,
+                    right: _,
+                },
+            ) => ast.push(bin_op),
             OpTerm::Op { op, precedence } => {
                 while op_stack.last().is_some() {
                     let last = op_stack.last().unwrap();
@@ -44,7 +56,7 @@ pub fn shunting_yard(tokens: Vec<OpTerm>) -> Result<Expr, ParserError> {
             }
             //OpTerm::Expr(Expr::Operation(expr)) => ast.push(shunting_yard(expr)?),
             // for parenthesis
-            _ => unreachable!(),
+            c => panic!("{:#?}", c),
         }
     }
     for i in op_stack.into_iter().rev() {
