@@ -2,7 +2,7 @@ mod parser;
 
 use parser::{lexer::Lexer, parser::Parser};
 
-// TODO: Add bracket expression parsing and `;` operator and then typechecking
+// TODO: typechecking
 fn main() {
     let mut lexer = Lexer::new(
         "

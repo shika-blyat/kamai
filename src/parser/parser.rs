@@ -27,23 +27,18 @@ impl Parser {
             .or_else_savable(|_| self.func_call())
             .or_else_savable(|_| self.brackets())
             .or_else_savable(|_| self.parenthesis())
-            .or_else_savable(|err| {
-                if let ParserReason::IncorrectToken(_) = err.reason {
-                    return Err(err);
+            .or_else_savable(|err| match self.current() {
+                Some(tok) => {
+                    let range = tok.range.clone();
+                    Err(ParserError::new(
+                        ParserReason::Expected(format!("Unexpected {:#?}", tok)),
+                        range,
+                    ))
                 }
-                match self.current() {
-                    Some(tok) => {
-                        let range = tok.range.clone();
-                        Err(ParserError::new(
-                            ParserReason::Expected(format!("Unexpected {:#?}", tok)),
-                            range,
-                        ))
-                    }
-                    None => Err(ParserError::new(
-                        ParserReason::Expected("Unexpected EOF".to_string()),
-                        self.current..self.current + 1,
-                    )),
-                }
+                None => Err(ParserError::new(
+                    ParserReason::Expected("Unexpected EOF".to_string()),
+                    self.current..self.current + 1,
+                )),
             })
     }
     pub fn func_decl(&mut self) -> Result<(String, Expr), ParserError> {
@@ -235,7 +230,7 @@ impl Parser {
             }
             _ => Err(ParserError::new(
                 ParserReason::Expected(format!("Expected brackets")),
-                self.current..self.current + 1,
+                self.current..self.current,
             )),
         }
     }
