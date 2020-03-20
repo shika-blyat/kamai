@@ -27,16 +27,16 @@ impl Parser {
             .or_else_savable(|_| self.func_call())
             .or_else_savable(|_| self.brackets())
             .or_else_savable(|_| self.parenthesis())
-            .or_else_savable(|err| match self.current() {
+            .or_else_savable(|_| match self.current() {
                 Some(tok) => {
                     let range = tok.range.clone();
                     Err(ParserError::new(
-                        ParserReason::Expected(format!("Unexpected {:#?}", tok)),
+                        ParserReason::IncorrectToken(format!("Unexpected {:#?}", tok)),
                         range,
                     ))
                 }
                 None => Err(ParserError::new(
-                    ParserReason::Expected("Unexpected EOF".to_string()),
+                    ParserReason::IncorrectToken("Unexpected EOF".to_string()),
                     self.current..self.current + 1,
                 )),
             })
@@ -192,7 +192,7 @@ impl Parser {
                     .or_else_savable(|_| Ok(Expr::Val(Literal::Unit)))?;
                 let mut bracket_expr = vec![OpTerm::Expr(expr)];
                 while parser.semicolon().is_ok() {
-                    match dbg!(parser.expr()) {
+                    match parser.expr() {
                         Ok(expr) => {
                             bracket_expr.push(OpTerm::Op {
                                 op: Op::Semicolon,
