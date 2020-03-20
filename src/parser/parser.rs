@@ -24,21 +24,26 @@ impl Parser {
     }
     pub fn atom(&mut self) -> Result<Expr, ParserError> {
         self.int()
-            .or_else(|_| self.func_call())
-            .or_else(|_| self.brackets())
-            .or_else(|_| self.parenthesis())
-            .or_else(|_| match self.current() {
-                Some(tok) => {
-                    let range = tok.range.clone();
-                    Err(ParserError::new(
-                        ParserReason::Expected(format!("Unexpected {:#?}", tok)),
-                        range,
-                    ))
+            .or_else_savable(|_| self.func_call())
+            .or_else_savable(|_| self.brackets())
+            .or_else_savable(|_| self.parenthesis())
+            .or_else_savable(|err| {
+                if let ParserReason::IncorrectToken(_) = err.reason {
+                    return Err(err);
                 }
-                None => Err(ParserError::new(
-                    ParserReason::Expected("Unexpected EOF".to_string()),
-                    self.current..self.current + 1,
-                )),
+                match self.current() {
+                    Some(tok) => {
+                        let range = tok.range.clone();
+                        Err(ParserError::new(
+                            ParserReason::Expected(format!("Unexpected {:#?}", tok)),
+                            range,
+                        ))
+                    }
+                    None => Err(ParserError::new(
+                        ParserReason::Expected("Unexpected EOF".to_string()),
+                        self.current..self.current + 1,
+                    )),
+                }
             })
     }
     pub fn func_decl(&mut self) -> Result<(String, Expr), ParserError> {
@@ -113,7 +118,7 @@ impl Parser {
         self._expr(vec![OpTerm::Expr(left)])
     }
     pub fn identifier(&mut self) -> Result<Expr, ParserError> {
-        let elem = self.current_elem_or_eof(format!("Expected identifier"))?;
+        let elem = self.current_elem_or_err(format!("Expected identifier"))?;
         match elem {
             TokenElem::Identifier(s) => {
                 self.current += 1;
@@ -126,7 +131,7 @@ impl Parser {
         }
     }
     pub fn int(&mut self) -> Result<Expr, ParserError> {
-        let elem = self.current_elem_or_eof(format!("Expected number"))?;
+        let elem = self.current_elem_or_err(format!("Expected number"))?;
         match elem {
             TokenElem::Int(num) => {
                 self.current += 1;
@@ -139,7 +144,7 @@ impl Parser {
         }
     }
     pub fn op(&mut self) -> Result<Op, ParserError> {
-        let elem = self.current_elem_or_eof(format!("Expected operator"))?;
+        let elem = self.current_elem_or_err(format!("Expected operator"))?;
         match elem {
             TokenElem::Op(op) => {
                 self.current += 1;
@@ -156,7 +161,7 @@ impl Parser {
         }
     }
     pub fn semicolon(&mut self) -> Result<(), ParserError> {
-        let elem = self.current_elem_or_eof(format!("Expected `;`"))?;
+        let elem = self.current_elem_or_err(format!("Expected `;`"))?;
         match elem {
             TokenElem::Semicolon => {
                 self.current += 1;
@@ -169,7 +174,7 @@ impl Parser {
         }
     }
     pub fn equal(&mut self) -> Result<(), ParserError> {
-        let elem = self.current_elem_or_eof(format!("Expected `=`"))?;
+        let elem = self.current_elem_or_err(format!("Expected `=`"))?;
         match elem {
             TokenElem::Equal => {
                 self.current += 1;
@@ -182,21 +187,17 @@ impl Parser {
         }
     }
     pub fn brackets(&mut self) -> Result<Expr, ParserError> {
-        let elem = self.current_elem_or_eof(format!("Expected brackets"))?;
+        let elem = self.current_elem_or_err(format!("Expected brackets"))?;
         match elem {
             TokenElem::BracketPair(tokens) => {
                 self.current += 1;
                 let mut parser = Parser::new(tokens);
-                let expr = match parser.expr() {
-                    Ok(x) => OpTerm::Expr(x),
-                    Err(parser_err) => match parser_err.reason {
-                        ParserReason::IncorrectToken(_) => return Err(parser_err),
-                        _ => OpTerm::Expr(Expr::Val(Literal::Unit)),
-                    },
-                };
-                let mut bracket_expr = vec![expr];
+                let expr = parser
+                    .expr()
+                    .or_else_savable(|_| Ok(Expr::Val(Literal::Unit)))?;
+                let mut bracket_expr = vec![OpTerm::Expr(expr)];
                 while parser.semicolon().is_ok() {
-                    match parser.expr() {
+                    match dbg!(parser.expr()) {
                         Ok(expr) => {
                             bracket_expr.push(OpTerm::Op {
                                 op: Op::Semicolon,
@@ -239,7 +240,7 @@ impl Parser {
         }
     }
     pub fn parenthesis(&mut self) -> Result<Expr, ParserError> {
-        let elem = self.current_elem_or_eof(format!("Expected parenthesis"))?;
+        let elem = self.current_elem_or_err(format!("Expected parenthesis"))?;
         match elem {
             TokenElem::ParenthesisPair(tokens) => {
                 self.current += 1;
@@ -270,7 +271,7 @@ impl Parser {
             Some(self.tokens[self.current].clone())
         }
     }
-    pub fn current_elem_or_eof(&self, msg: String) -> Result<TokenElem, ParserError> {
+    pub fn current_elem_or_err(&self, msg: String) -> Result<TokenElem, ParserError> {
         match self.current() {
             Some(x) => Ok(x.elem),
             None => {

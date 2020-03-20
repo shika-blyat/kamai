@@ -52,3 +52,22 @@ impl ParserError {
         ParserError { reason, range }
     }
 }
+
+pub trait ParserResultControlFlow<T, E> {
+    fn or_else_savable<O: FnOnce(E) -> Result<T, E>>(self, op: O) -> Result<T, E>;
+}
+
+impl<T> ParserResultControlFlow<T, ParserError> for Result<T, ParserError> {
+    fn or_else_savable<O: FnOnce(ParserError) -> Result<T, ParserError>>(
+        self,
+        op: O,
+    ) -> Result<T, ParserError> {
+        match self {
+            Ok(t) => Ok(t),
+            Err(e) => match e.reason {
+                ParserReason::IncorrectToken(_) => Err(e),
+                _ => op(e),
+            },
+        }
+    }
+}
