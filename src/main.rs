@@ -1,12 +1,12 @@
 mod parser;
 
-use parser::{lexer::Lexer, parser::Parser};
+use parser::{lexer::Lexer, parse::Parser};
 
 // TODO: typechecking
 fn main() {
     let mut lexer = Lexer::new(
         "
-            {x + y; +}
+            {x + y;}
         "
         .to_string(),
     );

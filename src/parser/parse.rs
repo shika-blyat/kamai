@@ -1,3 +1,4 @@
+#![allow(clippy::range_plus_one)]
 use super::ast::*;
 use super::{
     lexer::{Token, TokenElem},
@@ -14,6 +15,7 @@ impl Parser {
     pub fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, current: 0 }
     }
+    #[allow(dead_code)]
     pub fn parse(&mut self) -> Result<HashMap<String, Expr>, ParserError> {
         let mut map = HashMap::new();
         while !self.is_empty() {
@@ -88,24 +90,26 @@ impl Parser {
     pub fn _expr(&mut self, mut left: Vec<OpTerm>) -> Result<Expr, ParserError> {
         let begin = self.current;
         let op = self.op();
-        if op.is_err() {
-            self.current = begin;
-            return Ok(shunting_yard(left)?);
-        } else {
-            let op = op.unwrap();
-            let right = self.atom().map_err(|_| {
-                ParserError::new(
-                    ParserReason::IncorrectToken(format!(
-                        "Missing right operand for operator {:#?}",
-                        op
-                    )),
-                    self.current..self.current + 1,
-                )
-            })?;
-            let precedence = find_op_precedence(&op);
-            left.push(OpTerm::Op { op, precedence });
-            left.push(OpTerm::Expr(right));
-            return Ok(self._expr(left)?);
+        match op {
+            Err(_) => {
+                self.current = begin;
+                Ok(shunting_yard(left)?)
+            }
+            Ok(op) => {
+                let right = self.atom().map_err(|_| {
+                    ParserError::new(
+                        ParserReason::IncorrectToken(format!(
+                            "Missing right operand for operator {:#?}",
+                            op
+                        )),
+                        self.current..self.current + 1,
+                    )
+                })?;
+                let precedence = find_op_precedence(&op);
+                left.push(OpTerm::Op { op, precedence });
+                left.push(OpTerm::Expr(right));
+                Ok(self._expr(left)?)
+            }
         }
     }
     pub fn expr(&mut self) -> Result<Expr, ParserError> {
@@ -113,33 +117,33 @@ impl Parser {
         self._expr(vec![OpTerm::Expr(left)])
     }
     pub fn identifier(&mut self) -> Result<Expr, ParserError> {
-        let elem = self.current_elem_or_err(format!("Expected identifier"))?;
+        let elem = self.current_elem_or_err("Expected identifier".to_string())?;
         match elem {
             TokenElem::Identifier(s) => {
                 self.current += 1;
                 Ok(Expr::Val(Literal::Identifier(s)))
             }
             _ => Err(ParserError::new(
-                ParserReason::Expected(format!("Expected identifier")),
+                ParserReason::Expected("Expected identifier".to_string()),
                 self.current..self.current + 1,
             )),
         }
     }
     pub fn int(&mut self) -> Result<Expr, ParserError> {
-        let elem = self.current_elem_or_err(format!("Expected number"))?;
+        let elem = self.current_elem_or_err("Expected number".to_string())?;
         match elem {
             TokenElem::Int(num) => {
                 self.current += 1;
                 Ok(Expr::Val(Literal::Int(num)))
             }
             _ => Err(ParserError::new(
-                ParserReason::Expected(format!("Expected number")),
+                ParserReason::Expected("Expected number".to_string()),
                 self.current..self.current + 1,
             )),
         }
     }
     pub fn op(&mut self) -> Result<Op, ParserError> {
-        let elem = self.current_elem_or_err(format!("Expected operator"))?;
+        let elem = self.current_elem_or_err("Expected operator".to_string())?;
         match elem {
             TokenElem::Op(op) => {
                 self.current += 1;
@@ -150,39 +154,39 @@ impl Parser {
                 }
             }
             _ => Err(ParserError::new(
-                ParserReason::Expected(format!("Expected operator")),
+                ParserReason::Expected("Expected operator".to_string()),
                 self.current..self.current + 1,
             )),
         }
     }
     pub fn semicolon(&mut self) -> Result<(), ParserError> {
-        let elem = self.current_elem_or_err(format!("Expected `;`"))?;
+        let elem = self.current_elem_or_err("Expected `;`".to_string())?;
         match elem {
             TokenElem::Semicolon => {
                 self.current += 1;
                 Ok(())
             }
             _ => Err(ParserError::new(
-                ParserReason::Expected(format!("Expected `;`")),
+                ParserReason::Expected("Expected `;`".to_string()),
                 self.current..self.current + 1,
             )),
         }
     }
     pub fn equal(&mut self) -> Result<(), ParserError> {
-        let elem = self.current_elem_or_err(format!("Expected `=`"))?;
+        let elem = self.current_elem_or_err("Expected `=`".to_string())?;
         match elem {
             TokenElem::Equal => {
                 self.current += 1;
                 Ok(())
             }
             _ => Err(ParserError::new(
-                ParserReason::Expected(format!("Expected `=`")),
+                ParserReason::Expected("Expected `=`".to_string()),
                 self.current..self.current + 1,
             )),
         }
     }
     pub fn brackets(&mut self) -> Result<Expr, ParserError> {
-        let elem = self.current_elem_or_err(format!("Expected brackets"))?;
+        let elem = self.current_elem_or_err("Expected brackets".to_string())?;
         match elem {
             TokenElem::BracketPair(tokens) => {
                 self.current += 1;
@@ -229,13 +233,13 @@ impl Parser {
                 }
             }
             _ => Err(ParserError::new(
-                ParserReason::Expected(format!("Expected brackets")),
+                ParserReason::Expected("Expected brackets".to_string()),
                 self.current..self.current,
             )),
         }
     }
     pub fn parenthesis(&mut self) -> Result<Expr, ParserError> {
-        let elem = self.current_elem_or_err(format!("Expected parenthesis"))?;
+        let elem = self.current_elem_or_err("Expected parenthesis".to_string())?;
         match elem {
             TokenElem::ParenthesisPair(tokens) => {
                 self.current += 1;
@@ -254,7 +258,7 @@ impl Parser {
                 }
             }
             _ => Err(ParserError::new(
-                ParserReason::Expected(format!("Expected parenthesis")),
+                ParserReason::Expected("Expected parenthesis".to_string()),
                 self.current..self.current + 1,
             )),
         }
@@ -269,12 +273,10 @@ impl Parser {
     pub fn current_elem_or_err(&self, msg: String) -> Result<TokenElem, ParserError> {
         match self.current() {
             Some(x) => Ok(x.elem),
-            None => {
-                return Err(ParserError::new(
-                    ParserReason::Expected(msg),
-                    self.current..self.current,
-                ))
-            }
+            None => Err(ParserError::new(
+                ParserReason::Expected(msg),
+                self.current..self.current,
+            )),
         }
     }
     pub fn is_empty(&self) -> bool {

@@ -10,10 +10,6 @@ pub enum Expr {
         fun: Box<Expr>,
         arg: Box<Expr>,
     },
-    BracketExpr {
-        left: Box<Expr>,
-        right: Box<Expr>,
-    },
     BinOp {
         op: Op,
         left: Box<Expr>,
