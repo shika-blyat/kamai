@@ -15,11 +15,6 @@ jobs:
           command: fmt
           args: --all -- --check
 
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
-
   build:
     runs-on: ubuntu-latest
     needs: lint

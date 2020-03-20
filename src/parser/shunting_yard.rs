@@ -53,5 +53,5 @@ pub fn shunting_yard(tokens: Vec<OpTerm>) -> Result<Expr, ParserError> {
             add_infix_op(&mut ast, op);
         }
     }
-    Ok(ast.into_iter().nth(0).unwrap())
+    Ok(ast.into_iter().next().unwrap())
 }
