@@ -1,6 +1,6 @@
 mod parser;
 
-use parser::{lexer::Lexer, parser::Parser};
+use parser::{lexer::Lexer, parse::Parser};
 
 // TODO: typechecking
 fn main() {

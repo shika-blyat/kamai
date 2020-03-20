@@ -1,3 +1,4 @@
+#![allow(clippy::range_plus_one)]
 use std::ops::Range;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -136,11 +137,11 @@ impl Lexer {
             Ok(num) => num,
             Err(_) =>
         };*/
-        return Token::new(
+        Token::new(
             TokenElem::Int(num.parse().unwrap()),
             self.current - num_len..self.current,
             num_c,
-        );
+        )
     }
     pub fn consume_brackets(&mut self) -> Result<Token, LexerError> {
         let start = self.current;
@@ -150,7 +151,7 @@ impl Lexer {
             TokenElem::BracketPair(tokens_in_bracket),
             start..self.current,
             self.code[start..self.current + 1]
-                .into_iter()
+                .iter()
                 .collect::<String>(),
         ))
     }
@@ -162,7 +163,7 @@ impl Lexer {
             TokenElem::ParenthesisPair(tokens_in_bracket),
             start..self.current,
             self.code[start..self.current + 1]
-                .into_iter()
+                .iter()
                 .collect::<String>(),
         ))
     }

@@ -16,32 +16,21 @@ pub fn shunting_yard(tokens: Vec<OpTerm>) -> Result<Expr, ParserError> {
     for i in tokens.into_iter() {
         match i {
             OpTerm::Expr(Expr::Val(val)) => ast.push(Expr::Val(val)),
-            OpTerm::Expr(call @ Expr::Call { fun: _, arg: _ }) => ast.push(call),
-            OpTerm::Expr(bracket_expr @ Expr::BracketExpr { left: _, right: _ }) => {
-                ast.push(bracket_expr)
-            }
-            OpTerm::Expr(
-                bin_op
-                @
-                Expr::BinOp {
-                    op: _,
-                    left: _,
-                    right: _,
-                },
-            ) => ast.push(bin_op),
+            OpTerm::Expr(call @ Expr::Call { .. }) => ast.push(call),
+            OpTerm::Expr(bin_op @ Expr::BinOp { .. }) => ast.push(bin_op),
             OpTerm::Op { op, precedence } => {
                 while op_stack.last().is_some() {
                     let last = op_stack.last().unwrap();
                     if let OpTerm::Op {
-                        op: _,
                         precedence: last_precedence,
+                        ..
                     } = last
                     {
-                        if *last_precedence > precedence || (*last_precedence == precedence)
+                        if *last_precedence >= precedence
                         // and op is left associative
                         {
                             let operator = match op_stack.pop().unwrap() {
-                                OpTerm::Op { op, precedence: _ } => op,
+                                OpTerm::Op { op, .. } => op,
                                 _ => unreachable!(),
                             };
                             add_infix_op(&mut ast, operator);
@@ -60,7 +49,7 @@ pub fn shunting_yard(tokens: Vec<OpTerm>) -> Result<Expr, ParserError> {
         }
     }
     for i in op_stack.into_iter().rev() {
-        if let OpTerm::Op { op, precedence: _ } = i {
+        if let OpTerm::Op { op, .. } = i {
             add_infix_op(&mut ast, op);
         }
     }
