@@ -17,6 +17,7 @@ pub struct Token {
     pub range: Range<usize>,
     pub lexeme: String,
 }
+
 impl Token {
     pub fn new(elem: TokenElem, range: Range<usize>, lexeme: String) -> Self {
         Self {
@@ -26,22 +27,26 @@ impl Token {
         }
     }
 }
-#[derive(Debug)]
+
+#[derive(Debug, PartialEq)]
 pub struct LexerError {
     reason: String,
     range: Range<usize>,
 }
+
 impl LexerError {
     pub fn new(reason: String, range: Range<usize>) -> Self {
         Self { reason, range }
     }
 }
+
 pub struct Lexer {
     code: Vec<char>,
     current: usize,
     is_inside_parenthesis: bool,
     is_inside_brackets: bool,
 }
+
 impl Lexer {
     /// Create a new lexer object, taking the code to tokenize in argument
     pub fn new(code: String) -> Self {
@@ -52,6 +57,7 @@ impl Lexer {
             is_inside_parenthesis: false,
         }
     }
+
     // The tokenize method is the core of the lexer logic, and is recursively called when an opening brakcet/parenthesis is encountered
     pub fn tokenize(&mut self) -> Result<Vec<Token>, LexerError> {
         let mut tokens = vec![];
@@ -74,7 +80,10 @@ impl Lexer {
                             self.current..self.current + 1,
                             "=".to_string(),
                         )),
-                        '(' => tokens.push(self.consume_parenthesis()?),
+                        '(' => {
+                            self.is_inside_parenthesis = true;
+                            tokens.push(self.consume_parenthesis()?)
+                        }
                         ')' => {
                             // If the method was recursively called because it encountered an opening bracket, then is_inside_brackets will be true
                             if self.is_inside_parenthesis {
@@ -87,7 +96,10 @@ impl Lexer {
                                 ));
                             }
                         }
-                        '{' => tokens.push(self.consume_brackets()?),
+                        '{' => {
+                            self.is_inside_brackets = true;
+                            tokens.push(self.consume_brackets()?)
+                        }
                         '}' => {
                             // If the method was recursively called because it encountered an opening bracket, then is_inside_brackets will be true
                             if self.is_inside_brackets {
@@ -123,6 +135,7 @@ impl Lexer {
             }
         }
     }
+
     pub fn consume_num(&mut self) -> Token {
         let mut num = self.current().unwrap().to_string();
         self.current += 1;
@@ -146,6 +159,7 @@ impl Lexer {
             num_c,
         )
     }
+
     pub fn consume_brackets(&mut self) -> Result<Token, LexerError> {
         let start = self.current;
         self.current += 1;
@@ -157,6 +171,7 @@ impl Lexer {
                 .collect::<String>(),
         ))
     }
+
     pub fn consume_parenthesis(&mut self) -> Result<Token, LexerError> {
         let start = self.current;
         self.current += 1;
@@ -168,11 +183,12 @@ impl Lexer {
                 .collect::<String>(),
         ))
     }
+
     pub fn consume_identifier(&mut self) -> Token {
         let mut ident = self.current().unwrap().to_string();
         self.current += 1;
         while let Some(c) = self.current() {
-            if c.is_ascii_alphanumeric() {
+            if c.is_ascii_alphanumeric() || c == '_' {
                 ident.push(c)
             } else {
                 break;
@@ -189,6 +205,7 @@ impl Lexer {
             ),
         }
     }
+
     pub fn current(&self) -> Option<char> {
         if self.is_empty() {
             None
@@ -196,6 +213,7 @@ impl Lexer {
             Some(self.code[self.current])
         }
     }
+
     pub fn is_empty(&self) -> bool {
         self.code.len() <= self.current
     }

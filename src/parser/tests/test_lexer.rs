@@ -1,7 +1,6 @@
-use crate::parser::lexer::{Lexer, Token, TokenElem};
-
 #[test]
 fn simple_tokens() {
+    use crate::parser::lexer::{Lexer, Token, TokenElem};
     let mut lexer = Lexer::new(" ab_cd_e ".to_string());
     assert_eq!(
         lexer.tokenize().unwrap(),
@@ -11,21 +10,25 @@ fn simple_tokens() {
             "ab_cd_e".to_string(),
         )],
     );
+
     let mut lexer = Lexer::new(" 15 ".to_string());
     assert_eq!(
         lexer.tokenize().unwrap(),
         vec![Token::new(TokenElem::Int(15), 1..3, "15".to_string())],
     );
+
     let mut lexer = Lexer::new(" = ".to_string());
     assert_eq!(
         lexer.tokenize().unwrap(),
         vec![Token::new(TokenElem::Equal, 1..2, "=".to_string())],
     );
+
     let mut lexer = Lexer::new(" ; ".to_string());
     assert_eq!(
         lexer.tokenize().unwrap(),
         vec![Token::new(TokenElem::Semicolon, 1..2, ";".to_string())],
     );
+
     let mut lexer = Lexer::new(" (5) ".to_string());
     assert_eq!(
         lexer.tokenize().unwrap(),
@@ -35,6 +38,7 @@ fn simple_tokens() {
             "(5)".to_string(),
         )],
     );
+
     let mut lexer = Lexer::new(" { 5; 15 } ".to_string());
     assert_eq!(
         lexer.tokenize().unwrap(),
@@ -48,26 +52,36 @@ fn simple_tokens() {
             "{ 5; 15 }".to_string(),
         )],
     );
+
     let mut lexer = Lexer::new(" +/*- ".to_string());
     assert_eq!(
         lexer.tokenize().unwrap(),
         vec![
-            Token::new(TokenElem::Equal, 1..2, "+".to_string()),
-            Token::new(TokenElem::Equal, 2..3, "/".to_string()),
-            Token::new(TokenElem::Equal, 3..4, "*".to_string()),
-            Token::new(TokenElem::Equal, 4..5, "-".to_string()),
+            Token::new(TokenElem::Op("+".to_string()), 1..2, "+".to_string()),
+            Token::new(TokenElem::Op("/".to_string()), 2..3, "/".to_string()),
+            Token::new(TokenElem::Op("*".to_string()), 3..4, "*".to_string()),
+            Token::new(TokenElem::Op("-".to_string()), 4..5, "-".to_string()),
         ],
     );
 }
 
 #[test]
-fn unclosed_parenthesis() {
-    let mut lexer = Lexer::new(" 1 + 2)");
+fn unmatching() {
+    use crate::parser::lexer::{Lexer, LexerError};
+    let mut lexer = Lexer::new(" 1 + 2)".to_string());
     assert_eq!(
         lexer.tokenize(),
         Err(LexerError::new(
             "Unmatched closing parenthesis".to_string(),
-            self.current..self.current + 1,
+            6..7,
+        ))
+    );
+    let mut lexer = Lexer::new(" 1 + 2}".to_string());
+    assert_eq!(
+        lexer.tokenize(),
+        Err(LexerError::new(
+            "Unmatched closing bracket".to_string(),
+            6..7,
         ))
     )
 }
