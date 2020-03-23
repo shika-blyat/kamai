@@ -20,7 +20,6 @@ fn simple_tokens() {
         lexer.tokenize().unwrap(),
         vec![Token::new(TokenElem::Int(15), 1..3, "15".to_string())],
     );
-
     let mut lexer = Lexer::new(" = ".to_string());
     assert_eq!(
         lexer.tokenize().unwrap(),

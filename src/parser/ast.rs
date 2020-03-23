@@ -6,6 +6,7 @@ pub enum Expr {
         body: Box<Expr>,
     },
     Val(Literal),
+    Identifier(String),
     Call {
         fun: Box<Expr>,
         arg: Box<Expr>,
@@ -30,7 +31,6 @@ pub enum Op {
 #[derive(Clone, Debug)]
 pub enum Literal {
     Int(isize),
-    Identifier(String),
     Unit,
 }
 #[derive(Debug)]
