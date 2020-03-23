@@ -47,5 +47,27 @@ fn simple_tokens() {
             1..9,
             "{ 5; 15 }".to_string(),
         )],
+    );
+    let mut lexer = Lexer::new(" +/*- ".to_string());
+    assert_eq!(
+        lexer.tokenize().unwrap(),
+        vec![
+            Token::new(TokenElem::Equal, 1..2, "+".to_string()),
+            Token::new(TokenElem::Equal, 2..3, "/".to_string()),
+            Token::new(TokenElem::Equal, 3..4, "*".to_string()),
+            Token::new(TokenElem::Equal, 4..5, "-".to_string()),
+        ],
+    );
+}
+
+#[test]
+fn unclosed_parenthesis() {
+    let mut lexer = Lexer::new(" 1 + 2)");
+    assert_eq!(
+        lexer.tokenize(),
+        Err(LexerError::new(
+            "Unmatched closing parenthesis".to_string(),
+            self.current..self.current + 1,
+        ))
     )
 }
