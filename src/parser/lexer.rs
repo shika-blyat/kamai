@@ -6,6 +6,7 @@ pub enum TokenElem {
     Int(isize),
     Identifier(String),
     Equal,
+    Unit,
     Op(String),
     Semicolon,
     BracketPair(Vec<Token>),
@@ -81,8 +82,17 @@ impl Lexer {
                             "=".to_string(),
                         )),
                         '(' => {
-                            self.is_inside_parenthesis = true;
-                            tokens.push(self.consume_parenthesis()?)
+                            if let Some(')') = self.peek() {
+                                tokens.push(Token::new(
+                                    TokenElem::Unit,
+                                    self.current..self.current + 2,
+                                    "()".to_string(),
+                                ));
+                                self.current += 1;
+                            } else {
+                                self.is_inside_parenthesis = true;
+                                tokens.push(self.consume_parenthesis()?)
+                            }
                         }
                         ')' => {
                             // If the method was recursively called because it encountered an opening bracket, then is_inside_brackets will be true
@@ -205,8 +215,14 @@ impl Lexer {
             ),
         }
     }
-
-    pub fn current(&self) -> Option<char> {
+    fn peek(&self) -> Option<char> {
+        if self.code.len() - 1 <= self.current {
+            None
+        } else {
+            Some(self.code[self.current + 1])
+        }
+    }
+    fn current(&self) -> Option<char> {
         if self.is_empty() {
             None
         } else {

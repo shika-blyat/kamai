@@ -10,7 +10,11 @@ fn simple_tokens() {
             "ab_cd_e".to_string(),
         )],
     );
-
+    let mut lexer = Lexer::new(" () ".to_string());
+    assert_eq!(
+        lexer.tokenize().unwrap(),
+        vec![Token::new(TokenElem::Unit, 1..3, "()".to_string())]
+    );
     let mut lexer = Lexer::new(" 15 ".to_string());
     assert_eq!(
         lexer.tokenize().unwrap(),
