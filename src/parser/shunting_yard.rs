@@ -18,6 +18,7 @@ pub fn shunting_yard(tokens: Vec<OpTerm>) -> Result<Expr, ParserError> {
             OpTerm::Expr(Expr::Val(val)) => ast.push(Expr::Val(val)),
             OpTerm::Expr(call @ Expr::Call { .. }) => ast.push(call),
             OpTerm::Expr(bin_op @ Expr::BinOp { .. }) => ast.push(bin_op),
+            OpTerm::Expr(ident @ Expr::Identifier(_)) => ast.push(ident),
             OpTerm::Op { op, precedence } => {
                 while op_stack.last().is_some() {
                     let last = op_stack.last().unwrap();

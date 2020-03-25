@@ -1,5 +1,5 @@
 use std::ops::Range;
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Expr {
     Lambda {
         param: String,
@@ -22,13 +22,13 @@ pub enum OpTerm {
     Op { op: Op, precedence: usize },
     Expr(Expr),
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Op {
     Add,
     Mul,
     Semicolon,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Literal {
     Int(isize),
     Unit,

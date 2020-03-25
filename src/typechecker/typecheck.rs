@@ -39,10 +39,10 @@ fn infer(expr: Expr, mut ctx: Context) -> Result<(Type, Subst), TypeError> {
             None => Err(TypeError {
                 reason: format!("Use of undeclared identifier {}", ident),
             }),
-        },
+        }, /*
         Expr::Lambda { param, body } => {
-            let tvar = ctx.new_tvar();
-        }
+        let tvar = ctx.new_tvar();
+        }*/
         _ => unreachable!(),
     }
 }

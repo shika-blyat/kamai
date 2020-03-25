@@ -1,7 +1,7 @@
 #![allow(clippy::range_plus_one)]
 use super::ast::*;
 use super::{
-    lexer::{Token, TokenElem},
+    lexer::{Lexer, LexerError, Token, TokenElem},
     shunting_yard::shunting_yard,
 };
 use std::collections::{HashMap, VecDeque};
@@ -12,10 +12,15 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn new(tokens: Vec<Token>) -> Self {
+    pub fn new(s: String) -> Result<Self, LexerError> {
+        Ok(Self {
+            tokens: Lexer::new(s).tokenize()?,
+            current: 0,
+        })
+    }
+    pub fn new_from_tokens(tokens: Vec<Token>) -> Self {
         Self { tokens, current: 0 }
     }
-    #[allow(dead_code)]
     pub fn parse(&mut self) -> Result<HashMap<String, Expr>, ParserError> {
         let mut map = HashMap::new();
         while !self.is_empty() {
@@ -204,10 +209,11 @@ impl Parser {
         match elem {
             TokenElem::BracketPair(tokens) => {
                 self.current += 1;
-                let mut parser = Parser::new(tokens);
+                let mut parser = Parser::new_from_tokens(tokens);
                 let expr = parser
                     .expr()
                     .or_else_savable(|_| Ok(Expr::Val(Literal::Unit)))?;
+                println!("a");
                 let mut bracket_expr = vec![OpTerm::Expr(expr)];
                 while parser.semicolon().is_ok() {
                     match parser.expr() {
@@ -219,7 +225,7 @@ impl Parser {
                             bracket_expr.push(OpTerm::Expr(expr));
                         }
                         Err(parser_err) => match parser_err.reason {
-                            ParserReason::IncorrectToken(_) => return Err(parser_err),
+                            ParserReason::Expected(_) => return Err(parser_err),
                             _ => match bracket_expr.last() {
                                 Some(OpTerm::Expr(Expr::Val(Literal::Unit))) => (),
                                 _ => {
@@ -257,7 +263,7 @@ impl Parser {
         match elem {
             TokenElem::ParenthesisPair(tokens) => {
                 self.current += 1;
-                let mut parser = Parser::new(tokens);
+                let mut parser = Parser::new_from_tokens(tokens);
                 let expr = parser.expr();
                 if parser.is_empty() {
                     expr
