@@ -29,6 +29,7 @@ impl Parser {
             .or_else_savable(|_| self.func_call())
             .or_else_savable(|_| self.brackets())
             .or_else_savable(|_| self.parenthesis())
+            .or_else_savable(|_| self.unit())
             .or_else_savable(|_| match self.current() {
                 Some(tok) => {
                     let range = tok.range.clone();
@@ -45,13 +46,13 @@ impl Parser {
     }
     pub fn func_decl(&mut self) -> Result<(String, Expr), ParserError> {
         let func_name = match self.identifier()? {
-            Expr::Val(Literal::Identifier(func_name)) => func_name,
+            Expr::Identifier(func_name) => func_name,
             _ => unreachable!(),
         };
         let mut params = vec![];
         while let Ok(ident) = self.identifier() {
             match ident {
-                Expr::Val(Literal::Identifier(ident)) => params.push(ident),
+                Expr::Identifier(ident) => params.push(ident),
                 _ => unreachable!(),
             }
         }
@@ -121,10 +122,23 @@ impl Parser {
         match elem {
             TokenElem::Identifier(s) => {
                 self.current += 1;
-                Ok(Expr::Val(Literal::Identifier(s)))
+                Ok(Expr::Identifier(s))
             }
             _ => Err(ParserError::new(
                 ParserReason::Expected("Expected identifier".to_string()),
+                self.current..self.current + 1,
+            )),
+        }
+    }
+    fn unit(&mut self) -> Result<Expr, ParserError> {
+        let elem = self.current_elem_or_err("Expected unit_type".to_string())?;
+        match elem {
+            TokenElem::Unit => {
+                self.current += 1;
+                Ok(Expr::Val(Literal::Unit))
+            }
+            _ => Err(ParserError::new(
+                ParserReason::Expected("Expected unit type".to_string()),
                 self.current..self.current + 1,
             )),
         }

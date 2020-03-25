@@ -1,4 +1,5 @@
 mod parser;
+mod typechecker;
 
 use parser::{lexer::Lexer, parse::Parser};
 
