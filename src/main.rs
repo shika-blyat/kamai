@@ -1,3 +1,15 @@
+#![feature(int_error_matching)]
+mod parser;
+
+use parser::lexer::Lexer;
+
 fn main() {
-    println!("Hello, world!");
+    let lexer = Lexer::new(
+        "
+x = a + b
+  where a = 2 + 5
+        b = 5",
+    );
+    let tokens = lexer.tokenize();
+    println!("{:#?}", tokens);
 }
