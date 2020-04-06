@@ -2,6 +2,14 @@ class ParseError(Exception):
     pass
 
 
+# Add special case for where block, allowing
+# ```haskell
+# add x y = z
+#   where z = x + y
+# ```
+# to be parsed like correctly :)
+
+
 def convert(s, level=1):
     k = 0
     res = []
@@ -14,7 +22,7 @@ def convert(s, level=1):
                 _, next_idx = s[k + 1]
                 nk, block_tokens = convert(s[k + 1 :], next_idx)
                 k += nk
-                res += block_tokens
+                res += block_tokens[1:]
             else:
                 raise ParseError("Empty where statement not allowed")
             res.append("}")
@@ -25,18 +33,15 @@ def convert(s, level=1):
                 _, next_idx = s[k + 1]
                 nk, block_tokens = convert(s[k + 1 :], next_idx)
                 k += nk
-                res += block_tokens
+                res += block_tokens[1:]
             else:
                 raise ParseError("Empty function not allowed")
             res.append("}")
         else:
             if tok_idx > level:
                 res.append(tok)
-            elif k + 1 < len(s) and s[k + 1][1] == level:
-                print("a")
-                res.append(";")
-                res.append(tok)
             elif tok_idx == level:
+                res.append(";")
                 res.append(tok)
             else:
                 return (k, res)
@@ -44,10 +49,13 @@ def convert(s, level=1):
     return (k, res)
 
 
-CODE = """a = b
-              where b = c
-                    c = d
-          c = d"""
+CODE = """
+a = b
+  where b = z
+        c = k
+         where k = 2
+
+"""
 
 
 def lex_code(s):
@@ -69,6 +77,25 @@ def lex_code(s):
     return res
 
 
+def pretty_print(l, k=0, level=0):
+    """
+    A (not really) pretty printer
+    """
+    s = ""
+    while k < len(l):
+        if l[k] == "{":
+            s += " " * level + "{\n"
+            (k, ns) = pretty_print(l, k + 1, level + 1)
+            s += ns + "\n"
+            s += " " * (level) + "}"
+        elif l[k] == "}":
+            return (k, s)
+        else:
+            s += " " * level + l[k] + " "
+        k += 1
+    return (k, s)
+
+
 lex = lex_code(CODE)
 print(lex)
-print(convert(lex))
+print(pretty_print(convert(lex)[1])[1])
