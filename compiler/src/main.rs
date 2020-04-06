@@ -1,5 +1,5 @@
 #![feature(int_error_matching)]
-mod parser;
+use kamai::parser;
 
 use parser::lexer::Lexer;
 

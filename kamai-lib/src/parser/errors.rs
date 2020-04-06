@@ -29,3 +29,16 @@ pub enum LErrorReason {
     /// Internal Compiler Error, containg the error code associated to the ICE if known
     ICE(Option<i32>, Option<String>),
 }
+
+#[derive(Debug)]
+pub struct ParserError {
+    reason: PErrorReason,
+    range_size: usize,
+    line: usize,
+    c: usize,
+}
+
+#[derive(Debug)]
+pub enum PErrorReason {
+    LayoutError,
+}
