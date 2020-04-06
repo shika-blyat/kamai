@@ -6,7 +6,8 @@
 
 use super::{
     ast_tokens::{Token, TokenKind},
-    errors::{LErrorReason, LexerError},
+    errors::{ErrorReason, ParserError},
+    layout_conv::into_insensitive,
 };
 use std::{iter::Peekable, num::IntErrorKind, str::Chars};
 
@@ -32,9 +33,9 @@ impl<'a> Lexer<'a> {
             counter: 1,
         }
     }
-    /// Consume the `Lexer` by building a `Token` vector from the inner string, returning a [LexerError](super::errors::LexerError)
+    /// Consume the `Lexer` by building a `Token` vector from the inner string, returning a [ParserError](super::errors::ParserError)
     /// if any error happens
-    pub fn tokenize(mut self) -> Result<Vec<Token>, LexerError> {
+    pub fn tokenize(mut self) -> Result<Vec<Token>, ParserError> {
         let mut tokens = vec![];
         loop {
             let next = self.next();
@@ -46,7 +47,7 @@ impl<'a> Lexer<'a> {
                     1,
                     String::new(),
                 ));
-                return Ok(tokens);
+                return Ok(into_insensitive(&tokens)?);
             }
             let c = next.unwrap();
             if c.is_ascii_alphabetic() {
@@ -66,12 +67,12 @@ impl<'a> Lexer<'a> {
                 '=' => tokens.push(self.build_tok(TokenKind::Equal, 1, c.to_string())),
                 '(' => tokens.push(self.build_tok(TokenKind::LParen, 1, c.to_string())),
                 ')' => tokens.push(self.build_tok(TokenKind::RParen, 1, c.to_string())),
-                _ => return Err(self.build_err(LErrorReason::UnexpectedChar(c), 1)),
+                _ => return Err(self.build_err(ErrorReason::UnexpectedChar(c), 1)),
             }
         }
     }
     /// Parse an integer
-    fn int(&mut self, first_c: char) -> Result<Token, LexerError> {
+    fn int(&mut self, first_c: char) -> Result<Token, ParserError> {
         let mut num_s = first_c.to_string();
         while let Some(c) = self.peek() {
             if c.is_ascii_digit() {
@@ -85,7 +86,7 @@ impl<'a> Lexer<'a> {
             Err(e) => match e.kind() {
                 IntErrorKind::Empty | IntErrorKind::Zero | IntErrorKind::InvalidDigit => {
                     return Err(self.build_err(
-                        LErrorReason::ICE(
+                        ErrorReason::ICE(
                             Some(1001),
                             Some("Unexpected error while lexing num".to_string()),
                         ),
@@ -94,14 +95,14 @@ impl<'a> Lexer<'a> {
                 }
                 IntErrorKind::Overflow => {
                     let num_s_len = num_s.len();
-                    return Err(self.build_err(LErrorReason::NumOverflow(num_s), num_s_len));
+                    return Err(self.build_err(ErrorReason::NumOverflow(num_s), num_s_len));
                 }
                 IntErrorKind::Underflow => {
                     let num_s_len = num_s.len();
-                    return Err(self.build_err(LErrorReason::NumUnderflow(num_s), num_s_len));
+                    return Err(self.build_err(ErrorReason::NumUnderflow(num_s), num_s_len));
                 }
                 _ => {
-                    let reason = LErrorReason::ICE(
+                    let reason = ErrorReason::ICE(
                         Some(1001),
                         Some("Unexpected error while lexing num due to unexhaustive int conversion's error handling".to_string()),
                     );
@@ -140,8 +141,8 @@ impl<'a> Lexer<'a> {
     }
     /// build an error from the given `reason` and a range_size representing the range of chars where the error happened.
     /// Assume that self.current_c is at the end of the range_size
-    fn build_err(&self, reason: LErrorReason, range_size: usize) -> LexerError {
-        LexerError::new(reason, self.line, self.current_c - range_size, range_size)
+    fn build_err(&self, reason: ErrorReason, range_size: usize) -> ParserError {
+        ParserError::new(reason, self.line, self.current_c - range_size, range_size)
     }
     /// build a token from the given TokenKind, size and lexeme.
     /// Assume that self.current_c is at the end of the size

@@ -19,19 +19,25 @@ pub enum TokenKind {
 /// Token objet. Holds a [TokenKind][TokenKind] and some metadata about the token itself
 #[derive(Debug, PartialEq, Clone)]
 pub struct Token {
-    tok: TokenKind,
-    line: usize,
-    c: usize,
-    size: usize,
-    lexeme: String,
+    pub kind: TokenKind,
+    pub line: usize,
+    pub char_level: usize,
+    pub size: usize,
+    pub lexeme: String,
 }
 
 impl Token {
-    pub fn new(tok: TokenKind, line: usize, c: usize, size: usize, lexeme: String) -> Self {
+    pub fn new(
+        kind: TokenKind,
+        line: usize,
+        char_level: usize,
+        size: usize,
+        lexeme: String,
+    ) -> Self {
         Self {
-            tok,
+            kind,
             line,
-            c,
+            char_level,
             size,
             lexeme,
         }

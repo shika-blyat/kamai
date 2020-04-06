@@ -2,27 +2,19 @@ use std::ops::Range;
 
 /// Struct representing a lexer error, holding the [reason][LErrorReason],
 /// and informations about where the error happened
+
 #[derive(Debug)]
-pub struct LexerError {
-    reason: LErrorReason,
+pub struct ParserError {
+    reason: ErrorReason,
     range_size: usize,
     line: usize,
     c: usize,
 }
-impl LexerError {
-    pub fn new(reason: LErrorReason, line: usize, c: usize, range_size: usize) -> Self {
-        Self {
-            line,
-            c,
-            range_size,
-            reason,
-        }
-    }
-}
-/// An enum representing all lexer error that could possibly happen while lexing.
-/// Is stored in a [LexerError][LexerError] object
+
 #[derive(Debug)]
-pub enum LErrorReason {
+pub enum ErrorReason {
+    LayoutError,
+    EmptyFunction,
     NumOverflow(String),
     NumUnderflow(String),
     UnexpectedChar(char),
@@ -30,15 +22,13 @@ pub enum LErrorReason {
     ICE(Option<i32>, Option<String>),
 }
 
-#[derive(Debug)]
-pub struct ParserError {
-    reason: PErrorReason,
-    range_size: usize,
-    line: usize,
-    c: usize,
-}
-
-#[derive(Debug)]
-pub enum PErrorReason {
-    LayoutError,
+impl ParserError {
+    pub fn new(reason: ErrorReason, line: usize, c: usize, range_size: usize) -> Self {
+        Self {
+            line,
+            c,
+            range_size,
+            reason,
+        }
+    }
 }
