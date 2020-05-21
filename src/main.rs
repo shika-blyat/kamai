@@ -90,14 +90,16 @@ fn into_insensitive<'a>(tokens: Lexer<'a, Token<'a>>) -> Vec<(Token<'a>, Range<u
 }
 
 fn main() {
-    let code = "a = if 2 
-                          then 
-                            if 2 then 3
-                          else a = 3
-                                   24
-                          5";
+    //FIXME fix this:
+    let code = "a = if 2
+    then
+      if 2 then 3
+    else a = 3
+             24
+    5";
     let lex = Token::lexer(code);
     let vec = into_insensitive(lex);
+    println!("{:#?}", vec);
     let tokens: Vec<&Token<'_>> = vec.iter().map(|(t, _)| t).collect();
     pretty_print_tokens(tokens.as_slice());
 }
@@ -124,5 +126,43 @@ fn test_braces() {
     a = then 2 else 3
     ",
         )),
-    )
+    );
+    /*let vec2 = vec![
+        (Token::Ident("a"), 0..1),
+        (Token::Eq, 2..3),
+        (Token::LBrace, 3..3),
+        (Token::If, 4..6),
+        (Token::Number(2), 7..8),
+        (Token::Then, 13..17),
+        (Token::LBrace, 17..17),
+        (Token::If, 24..26),
+        (Token::Number(2), 27..28),
+        (Token::RBrace, 33..33),
+        (Token::Then, 29..33),
+        (Token::LBrace, 33..33),
+        (Token::Number(3), 34..35),
+        (Token::RBrace, 36..36),
+        (Token::Else, 40..44),
+        (Token::LBrace, 44..44),
+        (Token::Ident("a"), 45..46),
+        (Token::Eq, 47..48),
+        (Token::LBrace, 48..48),
+        (Token::Number(3), 49..50),
+        (Token::Number(24), 64..66),
+        (Token::RBrace, 67..67),
+        (Token::RBrace, 67..67),
+        (Token::Number(5), 71..72),
+        (Token::RBrace, 72..72),
+    ];
+    assert_eq!(
+        into_insensitive(Token::lexer(
+            "a = if 2
+    then
+      if 2 then 3
+    else a = 3
+             24
+    5"
+        )),
+        vec2
+    );*/
 }

@@ -28,15 +28,6 @@ pub enum Token<'a> {
     #[token("}")]
     RBrace,
 
-    #[token("fn")]
-    Fn,
-
-    #[token("continue")]
-    Continue,
-
-    #[token("break")]
-    Break,
-
     #[token("return")]
     Return,
 
@@ -48,9 +39,6 @@ pub enum Token<'a> {
 
     #[token("else")]
     Else,
-
-    #[token("while")]
-    While,
 
     #[regex("\n+")]
     Newline,
@@ -80,14 +68,10 @@ impl<'a> fmt::Display for Token<'a> {
             Token::RParen => write!(f, ")"),
             Token::LBrace => write!(f, "{{"),
             Token::RBrace => write!(f, "}}"),
-            Token::Fn => write!(f, "fn"),
-            Token::Continue => write!(f, "continue"),
-            Token::Break => write!(f, "break"),
             Token::Return => write!(f, "return"),
             Token::If => write!(f, "if"),
             Token::Then => write!(f, "then"),
             Token::Else => write!(f, "else"),
-            Token::While => write!(f, "while"),
             Token::Eq => write!(f, "="),
             Token::Op(s) => write!(f, "{}", s),
             Token::Error => write!(f, "Error"),
