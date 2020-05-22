@@ -9,9 +9,7 @@ use std::{
     ops::Range,
 };
 
-use logos::{Lexer, Logos};
-
-use errors::syntax_err;
+use logos::Logos;
 use syntax::tokens::Token;
 
 fn pretty_print_tokens<'a>(tokens: &[&'_ Token<'a>]) {
@@ -28,22 +26,6 @@ fn pretty_print_tokens<'a>(tokens: &[&'_ Token<'a>]) {
                 print!("{{\n{}", " ".repeat(indent_level * 4));
             }
             t => print!("{} ", t),
-        }
-    }
-}
-#[derive(PartialEq, Debug, Clone, Copy)]
-enum OpenTok {
-    Eq,
-    ThenElse,
-    __Newline,
-}
-impl<'a> From<&'a Token<'a>> for OpenTok {
-    fn from(t: &'a Token) -> Self {
-        match t {
-            Token::Eq => Self::Eq,
-            Token::Then | Token::Else => Self::ThenElse,
-            Token::Newline => OpenTok::__Newline,
-            _ => panic!("Cannot build an OpenTok from a {:#?}", t),
         }
     }
 }
@@ -101,7 +83,6 @@ a = 3
 5";
     let lex = Token::lexer(code);
     let vec = into_insensitive(lex.spanned());
-    // println!("{:#?}", vec);
     let tokens: Vec<&Token<'_>> = vec.iter().map(|(t, _)| t).collect();
     pretty_print_tokens(tokens.as_slice());
 }
