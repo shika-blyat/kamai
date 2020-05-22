@@ -38,4 +38,4 @@ unwrap _ = exit f"{Line}:{Column}\nUnwrapped on a Option::None value"
 ```
 
 ## Special thanks to
-- [@mesabloo](https://github.com/Mesabloo) for the logo. Also check out [nihil](https://github.com/Mesabloo/nihil), his language, nihil's really cool :D. 
+- [@mesabloo](https://github.com/Mesabloo) for the logo. Also check out [nihil](https://github.com/Mesabloo/nihil), his language, it's really cool :D.
