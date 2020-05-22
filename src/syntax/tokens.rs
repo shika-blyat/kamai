@@ -43,9 +43,6 @@ pub enum Token<'a> {
     #[regex("\n+")]
     Newline,
 
-    #[regex(r"[\t ]+", |lex| lex.slice().chars().fold(0, |counter, c| if c == ' ' { counter + 1} else {counter + 4}), priority = 2)]
-    Space(usize),
-
     #[token("=")]
     Eq,
 
@@ -75,7 +72,7 @@ impl<'a> fmt::Display for Token<'a> {
             Token::Eq => write!(f, "="),
             Token::Op(s) => write!(f, "{}", s),
             Token::Error => write!(f, "Error"),
-            Token::Space(_) | Token::Newline => Ok(()),
+            Token::Newline => write!(f, "\n"),
         }
     }
 }
