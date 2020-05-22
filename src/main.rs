@@ -1,5 +1,5 @@
 #![feature(or_patterns)]
-
+// TODO return an error instead of panicking in block_inference
 mod errors;
 mod syntax;
 mod utils;
@@ -58,7 +58,8 @@ fn block_inference<'a>(
                 result_vec.push((t, span));
             }
             t @ Token::Eq => {
-                context_stack.push(span.end - last_newline);
+                let (_, last_span) = result_vec.last().unwrap();
+                context_stack.push(last_span.start - last_newline);
                 let start = span.start;
                 result_vec.push((t, span));
                 result_vec.push((Token::LBrace, start..start));
@@ -116,10 +117,10 @@ fn main() {
 a = 
     5
     if 2
-    then (if 2 then 3 else 4)
+    then 4
     else 2 
 a = 3 + 2 * 3
- - 24
+ - 24 
 5";
     let lex = Token::lexer(code);
     let vec = semicolon_inference(block_inference(lex.spanned()));
