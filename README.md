@@ -1,6 +1,6 @@
 # KAMAI
 
-![](assets/kamai_logo.png)
+<img src="assets/kamai_logo.png" alt="drawing" width="250"/>
 
 Kamai (pronounced ˈkɑməï) is a small yet pragma.. no, I'm joking. Kamai is an experiment, probably going nowhere, that I'm making to learn stuff related to programming languages.
 It's still in its extremely early stage, and even the goals/planned features aren't stable yet.
