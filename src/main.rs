@@ -1,5 +1,10 @@
 #![feature(or_patterns)]
-// TODO return an error instead of panicking in block_inference
+// TODO return an error instead of panicking in block_inference (the unwrap)
+// TODO write tests
+// TODO Merge block and semicolon inference into a single pass
+// TODO write the parser
+// TODO Create the error struct in syntax_err and integrate it with codespan
+
 mod errors;
 mod syntax;
 mod utils;
