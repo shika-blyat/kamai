@@ -40,6 +40,9 @@ pub enum Token<'a> {
     #[token("else")]
     Else,
 
+    #[token(";")]
+    Semicolon,
+
     #[regex("\n+")]
     Newline,
 
@@ -70,6 +73,7 @@ impl<'a> fmt::Display for Token<'a> {
             Token::Then => write!(f, "then"),
             Token::Else => write!(f, "else"),
             Token::Eq => write!(f, "="),
+            Token::Semicolon => write!(f, ";"),
             Token::Op(s) => write!(f, "{}", s),
             Token::Error => write!(f, "Error"),
             Token::Newline => write!(f, "\n"),

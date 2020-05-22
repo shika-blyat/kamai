@@ -21,6 +21,9 @@ fn pretty_print_tokens<'a>(tokens: &[&'_ Token<'a>]) {
                 let indentation = " ".repeat(indent_level * 4);
                 print!("\n{}}}\n{}", indentation, indentation,);
             }
+            Token::Semicolon => {
+                print!("{}\n{}", tok, " ".repeat(indent_level * 4));
+            }
             Token::LBrace => {
                 indent_level += 1;
                 print!("{{\n{}", " ".repeat(indent_level * 4));
@@ -77,19 +80,49 @@ fn semicolon_inference<'a>(
     v: impl IntoIterator<Item = (Token<'a>, Range<usize>)>,
 ) -> Vec<(Token<'a>, Range<usize>)> {
     let mut result_vec = vec![];
+    let mut can_close_instr = false;
+    let mut iter = v.into_iter().peekable();
+    while let Some((tok, span)) = iter.next() {
+        match tok {
+            Token::Newline => {
+                if can_close_instr {
+                    match iter.peek() {
+                        Some((Token::Op(_) | Token::Then | Token::Else, _)) => (),
+                        _ => result_vec.push((Token::Semicolon, span)),
+                    }
+                }
+            }
+            t
+            @
+            (Token::Op(_)
+            | Token::If
+            | Token::Else
+            | Token::Then
+            | Token::LBrace
+            | Token::RBrace) => {
+                can_close_instr = false;
+                result_vec.push((t, span))
+            }
+            t => {
+                can_close_instr = true;
+                result_vec.push((t, span));
+            }
+        }
+    }
     result_vec
 }
 fn main() {
     let code = "
-a = if 2
-    then
-      if 2 then 3 else 4
+a = 
+    5
+    if 2
+    then (if 2 then 3 else 4)
     else 2 
-a = 3
-    24
+a = 3 + 2 * 3
+ - 24
 5";
     let lex = Token::lexer(code);
-    let vec = block_inference(lex.spanned());
+    let vec = semicolon_inference(block_inference(lex.spanned()));
     let tokens: Vec<&Token<'_>> = vec.iter().map(|(t, _)| t).collect();
     pretty_print_tokens(tokens.as_slice());
 }
