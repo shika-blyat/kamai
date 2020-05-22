@@ -30,7 +30,7 @@ fn pretty_print_tokens<'a>(tokens: &[&'_ Token<'a>]) {
     }
 }
 
-fn into_insensitive<'a>(
+fn block_inference<'a>(
     tokens: impl IntoIterator<Item = (Token<'a>, Range<usize>)>,
 ) -> Vec<(Token<'a>, Range<usize>)> {
     let mut result_vec = vec![];
@@ -39,7 +39,7 @@ fn into_insensitive<'a>(
     let mut iter = tokens.into_iter().peekable();
     while let Some((tok, span)) = iter.next() {
         match tok {
-            Token::Newline => {
+            t @ Token::Newline => {
                 last_newline = span.start;
                 if let Some((_, span)) = iter.peek() {
                     let start_next = span.start - last_newline;
@@ -52,6 +52,7 @@ fn into_insensitive<'a>(
                         }
                     }
                 }
+                result_vec.push((t, span));
             }
             t @ Token::Eq => {
                 context_stack.push(span.end - last_newline);
@@ -72,6 +73,12 @@ fn into_insensitive<'a>(
     result_vec
 }
 
+fn semicolon_inference<'a>(
+    v: impl IntoIterator<Item = (Token<'a>, Range<usize>)>,
+) -> Vec<(Token<'a>, Range<usize>)> {
+    let mut result_vec = vec![];
+    result_vec
+}
 fn main() {
     let code = "
 a = if 2
@@ -82,7 +89,7 @@ a = 3
     24
 5";
     let lex = Token::lexer(code);
-    let vec = into_insensitive(lex.spanned());
+    let vec = block_inference(lex.spanned());
     let tokens: Vec<&Token<'_>> = vec.iter().map(|(t, _)| t).collect();
     pretty_print_tokens(tokens.as_slice());
 }
