@@ -1,5 +1,4 @@
 #![feature(or_patterns)]
-// TODO Merge block and semicolon inference into a single pass
 // TODO write the parser
 
 mod errors;
