@@ -1,9 +1,20 @@
-use std::fmt;
+use std::{fmt, ops::Range};
 
 use logos::Logos;
 
-#[derive(Logos, Debug, PartialEq)]
-pub enum Token<'a> {
+#[derive(Debug, Clone, PartialEq)]
+pub struct Token<'a> {
+    pub kind: TokenKind<'a>,
+    pub span: Range<usize>,
+}
+impl<'a> Token<'a> {
+    pub fn from_tuple((kind, span): (TokenKind<'a>, Range<usize>)) -> Self {
+        Self { kind, span }
+    }
+}
+
+#[derive(Logos, Debug, Clone, PartialEq)]
+pub enum TokenKind<'a> {
     #[regex("[0-9]+", |lex| lex.slice().parse())]
     Number(i64),
 
@@ -57,26 +68,26 @@ pub enum Token<'a> {
     Error,
 }
 
-impl<'a> fmt::Display for Token<'a> {
+impl<'a> fmt::Display for TokenKind<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Token::Number(n) => write!(f, "{}", n),
-            Token::Ident(s) => write!(f, "{}", s),
-            Token::Bool(b) => write!(f, "{}", b),
-            Token::Unit => write!(f, "()"),
-            Token::LParen => write!(f, "("),
-            Token::RParen => write!(f, ")"),
-            Token::LBrace => write!(f, "{{"),
-            Token::RBrace => write!(f, "}}"),
-            Token::Return => write!(f, "return"),
-            Token::If => write!(f, "if"),
-            Token::Then => write!(f, "then"),
-            Token::Else => write!(f, "else"),
-            Token::Eq => write!(f, "="),
-            Token::Semicolon => write!(f, ";"),
-            Token::Op(s) => write!(f, "{}", s),
-            Token::Error => write!(f, "Error"),
-            Token::Newline => write!(f, "\n"),
+            TokenKind::Number(n) => write!(f, "{}", n),
+            TokenKind::Ident(s) => write!(f, "{}", s),
+            TokenKind::Bool(b) => write!(f, "{}", b),
+            TokenKind::Unit => write!(f, "()"),
+            TokenKind::LParen => write!(f, "("),
+            TokenKind::RParen => write!(f, ")"),
+            TokenKind::LBrace => write!(f, "{{"),
+            TokenKind::RBrace => write!(f, "}}"),
+            TokenKind::Return => write!(f, "return"),
+            TokenKind::If => write!(f, "if"),
+            TokenKind::Then => write!(f, "then"),
+            TokenKind::Else => write!(f, "else"),
+            TokenKind::Eq => write!(f, "="),
+            TokenKind::Semicolon => write!(f, ";"),
+            TokenKind::Op(s) => write!(f, "{}", s),
+            TokenKind::Error => write!(f, "Error"),
+            TokenKind::Newline => write!(f, "\n"),
         }
     }
 }
