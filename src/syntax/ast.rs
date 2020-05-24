@@ -8,6 +8,7 @@ pub type Ident<'a> = &'a str;
 pub enum Expr<'a> {
     Literal(Literal),
     Ident(Ident<'a>),
+    Parenthesized(BoxNode<Expr<'a>>),
     Unary(UnOp, BoxNode<Expr<'a>>),
     Binary(BinOp, BoxNode<Expr<'a>>, BoxNode<Expr<'a>>),
     Lambda(Ident<'a>, BoxNode<Expr<'a>>),
@@ -60,6 +61,14 @@ pub enum Literal {
 pub struct Node<T: Clone> {
     pub value: T,
     pub span: Range<usize>,
+}
+impl<T: Clone> Node<T> {
+    pub fn into_boxed(self) -> Node<Box<T>> {
+        Node {
+            value: Box::new(self.value),
+            span: self.span,
+        }
+    }
 }
 
 impl<T: Clone> From<Node<T>> for BoxNode<T> {

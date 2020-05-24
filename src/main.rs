@@ -27,27 +27,45 @@ use syntax::{
     tokens::{Token, TokenKind},
 };
 
-fn parse<'a>(code: &'a str) -> Result<Node<Expr<'a>>, SyntaxErr<'a>> {
+fn parse<'a>(code: &'a str) -> Result<Node<Expr<'a>>, Vec<SyntaxErr<'a>>> {
     let lex = TokenKind::lexer(code);
-    let block_tokens = block_inference(lex.spanned().map(|t| Token::from_tuple(t)))?;
+    let block_tokens =
+        block_inference(lex.spanned().map(|t| Token::from_tuple(t))).map_err(|e| vec![e])?;
     println!("{:#?}", block_tokens);
-    Parser::new(block_tokens.into_iter()).operation()
+    let mut parser = Parser::new(block_tokens.into_iter());
+    match parser.expr() {
+        Ok(e) => {
+            if parser.error_monad.is_empty() {
+                Ok(e)
+            } else {
+                Err(parser.error_monad)
+            }
+        }
+        Err(e) => {
+            parser.error_monad.push(e);
+            Err(parser.error_monad)
+        }
+    }
 }
+
 fn main() {
+    //FIXME a * (2 + 3) doens't work, investigate why
     let code = "
-    a * 2 + 3
+    a * (2 + 3)
     ";
     let expr = parse(code);
     match expr {
         Ok(expr) => {
-            println!("{:#?}", expr);
+            println!("ast: {:#?}", expr);
         }
-        Err(e) => {
+        Err(errors) => {
             let file = SimpleFile::new("main.ka", code);
             let writer = StandardStream::stderr(ColorChoice::Always);
             let config = codespan_reporting::term::Config::default();
-            term::emit(&mut writer.lock(), &config, &file, &e.into())
-                .expect("Failed to write on stdout");
+            for err in errors {
+                term::emit(&mut writer.lock(), &config, &file, &err.into())
+                    .expect("Failed to write on stdout");
+            }
         }
     }
 }

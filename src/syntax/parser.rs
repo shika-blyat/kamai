@@ -26,6 +26,7 @@ macro_rules! tok {
 }
 pub struct Parser<'a, I: Iterator<Item = Token<'a>>> {
     tokens: Peekable<I>,
+    pub error_monad: Vec<SyntaxErr<'a>>,
 }
 
 #[allow(dead_code)]
@@ -33,24 +34,23 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     pub fn new(iter: I) -> Self {
         Self {
             tokens: iter.peekable(),
+            error_monad: vec![],
         }
     }
-    fn expr(&mut self) -> Result<Node<Expr<'a>>, SyntaxErr<'a>> {
-        match self.atom() {
-            Some(v) => Ok(v),
-            None => self
-                .parenthesized_expr()?
-                .ok_or_else(|| self.unexpected_err(Expected::Expr)),
-        }
-    }
-    pub fn operation(&mut self) -> Result<Node<Expr<'a>>, SyntaxErr<'a>> {
+    pub fn expr(&mut self) -> Result<Node<Expr<'a>>, SyntaxErr<'a>> {
         let mut op_or_expr_vec = vec![];
         loop {
-            match self.expr() {
-                Ok(e) => op_or_expr_vec.push(OpOrExpr::Expr(e)),
-                Err(_) => match self.operator() {
+            //println!("{:#?}", self.peek());
+            match self.atom() {
+                Some(e) => {
+                    //println!("{:#?}", e);
+                    op_or_expr_vec.push(OpOrExpr::Expr(e))
+                }
+                None => match self.operator() {
                     Some(op) => op_or_expr_vec.push(OpOrExpr::Op(op)),
-                    None => break,
+                    None => {
+                        break;
+                    }
                 },
             }
         }
@@ -86,18 +86,15 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             match tok {
                 OpOrExpr::Expr(e) => {
                     if let ShuntingYardState::ExpectOp = state {
-                        return Err(SyntaxErr {
-                            span: e.span,
-                            kind: SyntaxErrKind::UnexpectedExpr(e.value),
-                            expected: Expected::OneOf(vec![
-                                Expected::Operator,
-                                Expected::Semicolon,
-                            ]),
-                            note: None,
-                        });
+                        let last = ast.pop().unwrap();
+                        ast.push(Node {
+                            span: merge_ranges(&last.span, &e.span),
+                            value: Expr::Call(last.into_boxed(), e.into_boxed()),
+                        })
+                    } else {
+                        state = ShuntingYardState::ExpectOp;
+                        ast.push(e)
                     }
-                    state = ShuntingYardState::ExpectOp;
-                    ast.push(e)
                 }
                 OpOrExpr::Op(Node {
                     value: mut op,
@@ -154,6 +151,9 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 Self::insert_un_op(&mut ast, &i)
             }
         }
+        if ast.len() != 1 {
+            panic!("An unexpected error occured")
+        }
         Ok(ast.into_iter().next().unwrap())
     }
     fn operator(&mut self) -> Option<Node<Operator<'a>>> {
@@ -188,10 +188,10 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
                 },
                 _ => unreachable!(),
             })
-            .or_else(|| self.call())
             .or_else(|| self.expr_ident())
+            .or_else(|| self.parenthesized_expr())
     }
-    fn call(&mut self) -> Option<Node<Expr<'a>>> {
+    pub fn call(&mut self) -> Option<Node<Expr<'a>>> {
         let f = self.expr_ident()?;
         let mut args = vec![];
         while let Ok(Node { span, value }) = self.expr() {
@@ -201,7 +201,7 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             });
         }
         if args.is_empty() {
-            Some(f)
+            None
         } else {
             let mut args_iter = args.into_iter();
             let first_arg = args_iter.next().unwrap();
@@ -239,15 +239,26 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
         })
     }
     /// Returns an option if no parenthesis is opened, and a Some(Err(e)) if a parenthesis is opened but not closed
-    fn parenthesized_expr(&mut self) -> Result<Option<Node<Expr<'a>>>, SyntaxErr<'a>> {
-        match self.lparen() {
-            Some(_) => {
-                let e = self.expr().map(|e| Some(e))?;
-                self.rparen();
-                Ok(e)
-            }
-            None => Ok(None),
-        }
+    fn parenthesized_expr(&mut self) -> Option<Node<Expr<'a>>> {
+        let Token { span, .. } = self.lparen()?;
+        let e = self
+            .expr()
+            .map(|e| Node {
+                span: e.span.clone(),
+                value: Expr::Parenthesized(e.into_boxed()),
+            })
+            .ok()?;
+        self.rparen().or_else(|| {
+            self.error_monad.push(SyntaxErr {
+                span,
+                kind: SyntaxErrKind::Unclosed(Delimiter::Paren),
+                expected: Expected::None,
+                note: None,
+            });
+            self.restore();
+            None
+        });
+        Some(e)
     }
     tok!(op, TokenKind::Op(_));
     tok!(num, TokenKind::Number(_));
@@ -294,6 +305,18 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             span,
             expected: Expected::None,
             note: None,
+        }
+    }
+    pub fn restore(&mut self) {
+        loop {
+            match self.next() {
+                Some(Token {
+                    kind: TokenKind::Semicolon | TokenKind::RBrace,
+                    ..
+                })
+                | None => break,
+                _ => (),
+            }
         }
     }
     pub fn peek(&mut self) -> Option<&Token<'a>> {
@@ -415,3 +438,8 @@ pub enum Fixity {
     Prefix,
     Infix(Assoc),
 }
+/*
+mod tests {
+    use super::*;
+    fn simple_expr()
+}*/
