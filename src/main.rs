@@ -2,6 +2,9 @@
 // TODO write the parser
 // TODO Add error handling for lexing
 
+#[macro_use]
+extern crate lazy_static;
+
 mod errors;
 mod syntax;
 mod utils;
@@ -15,25 +18,29 @@ use codespan_reporting::{
 };
 use logos::Logos;
 
+use errors::syntax_err::SyntaxErr;
+
 use syntax::{
+    ast::{Expr, Node},
     insensitive_layout::*,
+    parser::Parser,
     tokens::{Token, TokenKind},
 };
 
+fn parse<'a>(code: &'a str) -> Result<Node<Expr<'a>>, SyntaxErr<'a>> {
+    let lex = TokenKind::lexer(code);
+    let block_tokens = block_inference(lex.spanned().map(|t| Token::from_tuple(t)))?;
+    println!("{:#?}", block_tokens);
+    Parser::new(block_tokens.into_iter()).operation()
+}
 fn main() {
     let code = "
-    a = 5
-        a = 8 * 2
-          5
-        2
+    a * 2 + 3
     ";
-    let lex = TokenKind::lexer(code);
-    let block_tokens = block_inference(lex.spanned().map(|t| Token::from_tuple(t)));
-    match block_tokens {
-        Ok(tokens) => {
-            let tokens: Vec<&TokenKind<'_>> =
-                tokens.iter().map(|Token { kind, .. }| kind).collect();
-            pretty_print_tokens(tokens.as_slice());
+    let expr = parse(code);
+    match expr {
+        Ok(expr) => {
+            println!("{:#?}", expr);
         }
         Err(e) => {
             let file = SimpleFile::new("main.ka", code);

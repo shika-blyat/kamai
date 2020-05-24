@@ -1,6 +1,6 @@
-use std::ops::Range;
+use std::{fmt, ops::Range};
 
-use crate::syntax::tokens::TokenKind;
+use crate::syntax::{ast::Expr, tokens::TokenKind};
 use codespan_reporting::diagnostic::{Diagnostic, Label};
 
 #[derive(Debug)]
@@ -14,10 +14,29 @@ type HelpNote = &'static str;
 pub enum Expected {
     Item,
     Expr,
+    Operator,
+    Semicolon,
     None,
     OneOf(Vec<Expected>),
 }
-
+impl fmt::Display for Expected {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Expected::Item => write!(f, "an item"),
+            Expected::Expr => write!(f, "an expression"),
+            Expected::Operator => write!(f, "an operator"),
+            Expected::Semicolon => write!(f, "a `;`"),
+            Expected::OneOf(v) => {
+                write!(f, "one of [")?;
+                for e in v.iter().take(v.len() - 1) {
+                    write!(f, "{}, ", e)?;
+                }
+                write!(f, " {}]", v.last().unwrap())
+            }
+            Expected::None => write!(f, ""),
+        }
+    }
+}
 #[derive(Debug)]
 pub struct SyntaxErr<'a> {
     pub span: Range<usize>,
@@ -30,6 +49,7 @@ pub struct SyntaxErr<'a> {
 pub enum SyntaxErrKind<'a> {
     UnexpectedToken(TokenKind<'a>),
     Unclosed(Delimiter),
+    UnexpectedExpr(Expr<'a>),
     UnexpectedEOF,
 }
 impl<'a> From<SyntaxErr<'a>> for Diagnostic<()> {
@@ -52,23 +72,21 @@ impl<'a> From<SyntaxErr<'a>> for Diagnostic<()> {
             SyntaxErrKind::Unclosed(delimiter) => {
                 diag = diag.with_message(format!("Unclosed {:#?}", delimiter));
             }
+            SyntaxErrKind::UnexpectedExpr(_) => {
+                diag = diag.with_message(format!("Unexpected expression"))
+            }
         }
         match note {
             Some(s) => diag = diag.with_notes(vec![s.to_string()]),
             None => (),
         }
         match expected {
-            Expected::Item => {
+            Expected::None => (),
+            _ => {
                 diag = diag.with_labels(vec![
-                    Label::primary((), span).with_message("expected an item declaration")
+                    Label::primary((), span).with_message(format!("Expected {}", expected))
                 ])
             }
-            Expected::Expr => {
-                diag = diag.with_labels(vec![
-                    Label::primary((), span).with_message("expected an expression")
-                ])
-            }
-            Expected::OneOf(_) | Expected::None => (),
         }
         diag
     }

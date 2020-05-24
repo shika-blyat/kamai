@@ -91,3 +91,25 @@ impl<'a> fmt::Display for TokenKind<'a> {
         }
     }
 }
+
+#[allow(dead_code)]
+pub fn pretty_print_tokens<'a>(tokens: &[&'_ TokenKind<'a>]) {
+    let mut indent_level = 0;
+    for tok in tokens {
+        match tok {
+            TokenKind::RBrace => {
+                indent_level -= 1;
+                let indentation = " ".repeat(indent_level * 4);
+                print!("\n{}}}\n{}", indentation, indentation,);
+            }
+            TokenKind::Semicolon => {
+                print!("{}\n{}", tok, " ".repeat(indent_level * 4));
+            }
+            TokenKind::LBrace => {
+                indent_level += 1;
+                print!("{{\n{}", " ".repeat(indent_level * 4));
+            }
+            t => print!("{} ", t),
+        }
+    }
+}

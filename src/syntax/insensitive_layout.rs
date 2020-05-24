@@ -5,27 +5,6 @@ use crate::{
     syntax::tokens::{Token, TokenKind},
 };
 
-pub fn pretty_print_tokens<'a>(tokens: &[&'_ TokenKind<'a>]) {
-    let mut indent_level = 0;
-    for tok in tokens {
-        match tok {
-            TokenKind::RBrace => {
-                indent_level -= 1;
-                let indentation = " ".repeat(indent_level * 4);
-                print!("\n{}}}\n{}", indentation, indentation,);
-            }
-            TokenKind::Semicolon => {
-                print!("{}\n{}", tok, " ".repeat(indent_level * 4));
-            }
-            TokenKind::LBrace => {
-                indent_level += 1;
-                print!("{{\n{}", " ".repeat(indent_level * 4));
-            }
-            t => print!("{} ", t),
-        }
-    }
-}
-
 pub fn block_inference<'a>(
     tokens: impl IntoIterator<Item = Token<'a>>,
 ) -> Result<Vec<Token<'a>>, SyntaxErr<'a>> {
@@ -75,7 +54,6 @@ pub fn block_inference<'a>(
                         });
                     }
                 }
-                //result_vec.push(Token { kind, span });
             }
             TokenKind::Eq => {
                 let Token {
@@ -98,7 +76,8 @@ pub fn block_inference<'a>(
             | TokenKind::If
             | TokenKind::Else
             | TokenKind::Then
-            | TokenKind::LBrace => {
+            | TokenKind::LBrace
+            | TokenKind::Semicolon => {
                 can_close_instr = false;
                 result_vec.push(Token { kind, span })
             }
@@ -127,63 +106,6 @@ pub fn block_inference<'a>(
     Ok(result_vec)
 }
 
-/*pub fn semicolon_inference<'a>(v: impl IntoIterator<Item = Token<'a>>) -> Vec<Token<'a>> {
-    let mut result_vec = vec![];
-    let mut can_close_instr = false;
-    let mut iter = v.into_iter().peekable();
-    while let Some(Token { kind, span }) = iter.next() {
-        match kind {
-            TokenKind::Newline => {
-                if can_close_instr {
-                    match iter.peek() {
-                        Some(Token {
-                            kind: TokenKind::Op(_) | TokenKind::Then | TokenKind::Else,
-                            ..
-                        }) => (),
-                        _ => result_vec.push(Token {
-                            kind: TokenKind::Semicolon,
-                            span,
-                        }),
-                    }
-                }
-            }
-            // done
-            TokenKind::RBrace => {
-                can_close_instr = false;
-                result_vec.push(Token {
-                    kind: TokenKind::RBrace,
-                    span: span.clone(),
-                });
-                result_vec.push(Token {
-                    kind: TokenKind::Semicolon,
-                    span,
-                })
-            }
-            // done
-            TokenKind::Op(_)
-            | TokenKind::If
-            | TokenKind::Else
-            | TokenKind::Then
-            | TokenKind::LBrace => {
-                can_close_instr = false;
-                result_vec.push(Token { kind, span })
-            }
-            // done
-            _ => {
-                can_close_instr = true;
-                result_vec.push(Token { kind, span });
-            }
-        }
-    }
-    if can_close_instr {
-        result_vec.push(Token {
-            kind: TokenKind::Semicolon,
-            span: result_vec.last().unwrap().span.clone(),
-        });
-    }
-    result_vec
-}
-*/
 mod test {
     #![allow(unused_imports)]
     use super::*;
