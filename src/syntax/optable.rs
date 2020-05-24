@@ -88,7 +88,7 @@ lazy_static! {
         map.insert(
             "==".to_string(),
             Operator {
-                prec: 7,
+                prec: 8,
                 fixity: Fixity::Infix(Assoc::Left),
                 sym: "==",
             },
@@ -96,7 +96,7 @@ lazy_static! {
         map.insert(
             "!=".to_string(),
             Operator {
-                prec: 7,
+                prec: 8,
                 fixity: Fixity::Infix(Assoc::Left),
                 sym: "!=",
             },

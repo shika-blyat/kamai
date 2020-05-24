@@ -1,16 +1,18 @@
 use std::convert::TryInto;
 
 use super::tokens::TokenKind;
-use super::{
-    ast::*,
-    parser::{OpOrExpr, Operator},
-};
+use super::{ast::*, parser::Operator};
 use crate::{errors::syntax_err::*, utils::merge_ranges};
 
 #[derive(Debug)]
 enum ShuntingYardState {
     ExpectOperand,
     ExpectOp,
+}
+#[derive(Debug)]
+pub(super) enum OpOrExpr<'a> {
+    Expr(Node<Expr<'a>>),
+    Op(Node<Operator<'a>>),
 }
 
 fn insert_bin_op<'a>(ast: &mut Vec<Node<Expr<'a>>>, Node { value: op, .. }: &Node<Operator<'a>>) {
@@ -21,6 +23,7 @@ fn insert_bin_op<'a>(ast: &mut Vec<Node<Expr<'a>>>, Node { value: op, .. }: &Nod
         value: Expr::Binary(op.clone().try_into().unwrap(), left.into(), right.into()),
     })
 }
+
 fn insert_un_op<'a>(
     ast: &mut Vec<Node<Expr<'a>>>,
     Node {
@@ -34,6 +37,7 @@ fn insert_un_op<'a>(
         value: Expr::Unary(op.clone().try_into().unwrap(), right.into()),
     })
 }
+
 pub(super) fn shunting_yard<'a>(
     tokens: Vec<OpOrExpr<'a>>,
 ) -> Result<Node<Expr<'a>>, SyntaxErr<'a>> {

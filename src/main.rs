@@ -35,15 +35,15 @@ fn parse<'a>(code: &'a str) -> Result<Node<Expr<'a>>, Vec<SyntaxErr<'a>>> {
     let mut parser = Parser::new(block_tokens.into_iter());
     match parser.expr() {
         Ok(e) => {
-            if parser.error_monad.is_empty() {
+            if parser.errors.is_empty() {
                 Ok(e)
             } else {
-                Err(parser.error_monad)
+                Err(parser.errors)
             }
         }
         Err(e) => {
-            parser.error_monad.push(e);
-            Err(parser.error_monad)
+            parser.errors.push(e);
+            Err(parser.errors)
         }
     }
 }
