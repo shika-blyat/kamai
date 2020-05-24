@@ -86,44 +86,6 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             .or_else(|| self.expr_ident())
             .or_else(|| self.parenthesized_expr())
     }
-    pub fn call(&mut self) -> Option<Node<Expr<'a>>> {
-        let f = self.expr_ident()?;
-        let mut args = vec![];
-        while let Ok(Node { span, value }) = self.expr() {
-            args.push(Node {
-                span: span,
-                value: Box::new(value),
-            });
-        }
-        if args.is_empty() {
-            None
-        } else {
-            let mut args_iter = args.into_iter();
-            let first_arg = args_iter.next().unwrap();
-            let f = Node {
-                span: f.span,
-                value: Box::new(f.value),
-            };
-            let mut call = Node {
-                span: f.span.start..first_arg.span.end,
-                value: Expr::Call(f, first_arg),
-            };
-            for expr in args_iter {
-                let Node { span, value } = call;
-                call = Node {
-                    span: span.start..expr.span.end,
-                    value: Expr::Call(
-                        Node {
-                            value: Box::new(value),
-                            span,
-                        },
-                        expr,
-                    ),
-                };
-            }
-            Some(call)
-        }
-    }
     fn expr_ident(&mut self) -> Option<Node<Expr<'a>>> {
         self.ident().map(|Token { kind, span }| match kind {
             TokenKind::Ident(s) => Node {
@@ -133,7 +95,6 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
             _ => unreachable!(),
         })
     }
-    /// Returns an option if no parenthesis is opened, and a Some(Err(e)) if a parenthesis is opened but not closed
     fn parenthesized_expr(&mut self) -> Option<Node<Expr<'a>>> {
         let Token { span, .. } = self.lparen()?;
         let e = self
