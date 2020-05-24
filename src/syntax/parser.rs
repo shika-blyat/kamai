@@ -1,3 +1,6 @@
+// todo write some tests
+// todo cleanup the code
+
 use std::{
     convert::{TryFrom, TryInto},
     iter::Peekable,
