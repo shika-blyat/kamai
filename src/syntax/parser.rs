@@ -1,10 +1,7 @@
 // todo write some tests
 // todo cleanup the code
 
-use std::{
-    convert::{TryFrom, TryInto},
-    iter::Peekable,
-};
+use std::{convert::TryFrom, iter::Peekable};
 
 use super::ast::*;
 use super::{
@@ -12,7 +9,7 @@ use super::{
     shunting_yard::*,
     tokens::{Token, TokenKind},
 };
-use crate::{errors::syntax_err::*, utils::merge_ranges};
+use crate::errors::syntax_err::*;
 
 macro_rules! tok {
     ($name: ident, $token: pat) => {
@@ -223,12 +220,6 @@ impl<'a, I: Iterator<Item = Token<'a>>> Parser<'a, I> {
     pub fn next(&mut self) -> Option<Token<'a>> {
         self.tokens.next()
     }
-}
-
-#[derive(Debug)]
-enum ShuntingYardState {
-    ExpectOperand,
-    ExpectOp,
 }
 
 #[derive(Debug)]
