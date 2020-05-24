@@ -1,5 +1,6 @@
 #![feature(or_patterns)]
 // TODO write the parser
+// TODO Add error handling for lexing
 
 mod errors;
 mod syntax;

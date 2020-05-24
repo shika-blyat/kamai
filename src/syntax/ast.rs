@@ -6,12 +6,13 @@ pub type Ident<'a> = &'a str;
 
 #[derive(Debug, PartialEq, Clone)]
 pub enum Expr<'a> {
-    Literal(Node<Literal>),
-    Ident(Node<Ident<'a>>),
+    Literal(Literal),
+    Ident(Ident<'a>),
     Unary(UnOp, BoxNode<Expr<'a>>),
     Binary(BinOp, BoxNode<Expr<'a>>, BoxNode<Expr<'a>>),
     Lambda(Ident<'a>, BoxNode<Expr<'a>>),
-    Call(BoxNode<Expr<'a>>, Vec<Node<Expr<'a>>>),
+    Call(BoxNode<Expr<'a>>, BoxNode<Expr<'a>>),
+    EmptyCall(BoxNode<Expr<'a>>),
     Block {
         instructions: Vec<Node<Statement<'a>>>,
         returns: bool,
@@ -38,6 +39,8 @@ pub enum BinOp {
     LTE,
     GT,
     GTE,
+    EqEq,
+    NotEq,
 }
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum UnOp {
@@ -48,13 +51,22 @@ pub enum UnOp {
 
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum Literal {
-    Num(usize),
+    Num(i64),
     Bool(bool),
     Unit,
 }
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Node<T: Clone> {
-    value: T,
-    span: Range<usize>,
+    pub value: T,
+    pub span: Range<usize>,
+}
+
+impl<T: Clone> From<Node<T>> for BoxNode<T> {
+    fn from(Node { span, value }: Node<T>) -> Self {
+        Self {
+            value: Box::new(value),
+            span,
+        }
+    }
 }
