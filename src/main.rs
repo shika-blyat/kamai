@@ -24,14 +24,14 @@ use syntax::{
     ast::{Expr, Node},
     insensitive_layout::*,
     parser::Parser,
-    tokens::{Token, TokenKind},
+    tokens::{pretty_print_tokens, Token, TokenKind},
 };
 
 fn parse<'a>(code: &'a str) -> Result<Node<Expr<'a>>, Vec<SyntaxErr<'a>>> {
     let lex = TokenKind::lexer(code);
     let block_tokens =
         block_inference(lex.spanned().map(|t| Token::from_tuple(t))).map_err(|e| vec![e])?;
-    println!("{:#?}", block_tokens);
+    pretty_print_tokens(block_tokens.iter());
     let mut parser = Parser::new(block_tokens.into_iter());
     match parser.expr() {
         Ok(e) => {
@@ -51,7 +51,7 @@ fn parse<'a>(code: &'a str) -> Result<Node<Expr<'a>>, Vec<SyntaxErr<'a>>> {
 fn main() {
     //FIXME a * (2 + 3) doens't work, investigate why
     let code = "
-    a * (2 + 3)
+    a = if True then 2 else 3
     ";
     let expr = parse(code);
     match expr {

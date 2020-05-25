@@ -55,29 +55,33 @@ pub fn block_inference<'a>(
                     }
                 }
             }
-            TokenKind::Eq => {
+            t @ (TokenKind::Then | TokenKind::Else) => {
+                context_stack.push(span.start - last_newline);
+                let end = span.end;
+                result_vec.push(Token { kind: t, span });
+                result_vec.push(Token {
+                    kind: TokenKind::LBrace,
+                    span: end..end,
+                });
+            }
+            t @ TokenKind::Eq => {
                 let Token {
                     span: last_span, ..
                 } = result_vec.last().ok_or_else(|| SyntaxErr {
-                    kind: SyntaxErrKind::UnexpectedToken(TokenKind::Eq),
+                    kind: SyntaxErrKind::UnexpectedToken(t.clone()),
                     span: span.clone(),
                     expected: Expected::Item,
                     note: Some("Maybe you meant to declare an item?"),
                 })?;
                 context_stack.push(last_span.end - last_newline);
-                let start = span.start;
-                result_vec.push(Token { kind, span });
+                let end = span.end;
+                result_vec.push(Token { kind: t, span });
                 result_vec.push(Token {
                     kind: TokenKind::LBrace,
-                    span: start..start,
+                    span: end..end,
                 });
             }
-            TokenKind::Op(_)
-            | TokenKind::If
-            | TokenKind::Else
-            | TokenKind::Then
-            | TokenKind::LBrace
-            | TokenKind::Semicolon => {
+            TokenKind::Op(_) | TokenKind::If | TokenKind::LBrace | TokenKind::Semicolon => {
                 can_close_instr = false;
                 result_vec.push(Token { kind, span })
             }
@@ -146,16 +150,32 @@ mod test {
                 span: 20..24,
             },
             Token {
+                kind: TokenKind::LBrace,
+                span: 0..0,
+            },
+            Token {
                 kind: TokenKind::Number(4),
                 span: 25..26,
+            },
+            Token {
+                kind: TokenKind::RBrace,
+                span: 0..0,
             },
             Token {
                 kind: TokenKind::Else,
                 span: 31..35,
             },
             Token {
+                kind: TokenKind::LBrace,
+                span: 0..0,
+            },
+            Token {
                 kind: TokenKind::Number(2),
                 span: 36..37,
+            },
+            Token {
+                kind: TokenKind::RBrace,
+                span: 0..0,
             },
             Token {
                 kind: TokenKind::RBrace,
@@ -233,82 +253,7 @@ a = 3 + 2 * 3
         let lex = TokenKind::lexer(code);
         let result = block_inference(lex.spanned().map(|t| Token::from_tuple(t))).unwrap();
         for (t1, t2) in vec.into_iter().zip(result.into_iter()) {
-            assert_eq!(t1, t2);
-        }
-    }
-    #[test]
-    fn one_line_if() {
-        let vec = vec![
-            Token {
-                kind: TokenKind::Ident("a"),
-                span: 5..6,
-            },
-            Token {
-                kind: TokenKind::Eq,
-                span: 7..8,
-            },
-            Token {
-                kind: TokenKind::LBrace,
-                span: 7..7,
-            },
-            Token {
-                kind: TokenKind::If,
-                span: 9..11,
-            },
-            Token {
-                kind: TokenKind::Number(2),
-                span: 12..13,
-            },
-            Token {
-                kind: TokenKind::Then,
-                span: 14..18,
-            },
-            Token {
-                kind: TokenKind::Number(3),
-                span: 19..20,
-            },
-            Token {
-                kind: TokenKind::Else,
-                span: 21..25,
-            },
-            Token {
-                kind: TokenKind::Number(4),
-                span: 26..27,
-            },
-            Token {
-                kind: TokenKind::Semicolon,
-                span: 36..37,
-            },
-            Token {
-                kind: TokenKind::Number(2),
-                span: 36..37,
-            },
-            Token {
-                kind: TokenKind::RBrace,
-                span: 6..6,
-            },
-            Token {
-                kind: TokenKind::Semicolon,
-                span: 43..44,
-            },
-            Token {
-                kind: TokenKind::Number(3),
-                span: 43..44,
-            },
-            Token {
-                kind: TokenKind::Semicolon,
-                span: 44..45,
-            },
-        ];
-        let code = "
-    a = if 2 then 3 else 4
-        2
-     3
-    ";
-        let lex = TokenKind::lexer(code);
-        let result = block_inference(lex.spanned().map(|t| Token::from_tuple(t))).unwrap();
-        for (t1, t2) in vec.into_iter().zip(result.into_iter()) {
-            assert_eq!(t1, t2);
+            assert_eq!(t1.kind, t2.kind);
         }
     }
     #[test]
@@ -400,7 +345,7 @@ a = 3 + 2 * 3
         let lex = TokenKind::lexer(code);
         let result = block_inference(lex.spanned().map(|t| Token::from_tuple(t))).unwrap();
         for (t1, t2) in vec.into_iter().zip(result.into_iter()) {
-            assert_eq!(t1, t2);
+            assert_eq!(t1.kind, t2.kind);
         }
     }
 }
