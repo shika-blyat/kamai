@@ -1,9 +1,13 @@
-use std::fmt;
+use std::{fmt, ops::Range};
 
 use logos::Logos;
 
+pub struct Token<'a> {
+    pub kind: TokenKind<'a>,
+    pub span: Range<usize>,
+}
 #[derive(Logos, Debug, PartialEq)]
-pub enum Token<'a> {
+pub enum TokenKind<'a> {
     #[regex("[0-9]+", |lex| lex.slice().parse())]
     Number(i64),
 
@@ -55,9 +59,6 @@ pub enum Token<'a> {
     #[regex("\n+")]
     Newline,
 
-    #[regex(r"[\t ]+", |lex| lex.slice().chars().fold(0, |counter, c| if c == ' ' { counter + 1} else {counter + 4}), priority = 2)]
-    Space(usize),
-
     #[token("=")]
     Eq,
 
@@ -69,29 +70,29 @@ pub enum Token<'a> {
     Error,
 }
 
-impl<'a> fmt::Display for Token<'a> {
+impl<'a> fmt::Display for TokenKind<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Token::Number(n) => write!(f, "{}", n),
-            Token::Ident(s) => write!(f, "{}", s),
-            Token::Bool(b) => write!(f, "{}", b),
-            Token::Unit => write!(f, "()"),
-            Token::LParen => write!(f, "("),
-            Token::RParen => write!(f, ")"),
-            Token::LBrace => write!(f, "{{"),
-            Token::RBrace => write!(f, "}}"),
-            Token::Fn => write!(f, "fn"),
-            Token::Continue => write!(f, "continue"),
-            Token::Break => write!(f, "break"),
-            Token::Return => write!(f, "return"),
-            Token::If => write!(f, "if"),
-            Token::Then => write!(f, "then"),
-            Token::Else => write!(f, "else"),
-            Token::While => write!(f, "while"),
-            Token::Eq => write!(f, "="),
-            Token::Op(s) => write!(f, "{}", s),
-            Token::Error => write!(f, "Error"),
-            Token::Space(_) | Token::Newline => Ok(()),
+            TokenKind::Number(n) => write!(f, "{}", n),
+            TokenKind::Ident(s) => write!(f, "{}", s),
+            TokenKind::Bool(b) => write!(f, "{}", b),
+            TokenKind::Unit => write!(f, "()"),
+            TokenKind::LParen => write!(f, "("),
+            TokenKind::RParen => write!(f, ")"),
+            TokenKind::LBrace => write!(f, "{{"),
+            TokenKind::RBrace => write!(f, "}}"),
+            TokenKind::Fn => write!(f, "fn"),
+            TokenKind::Continue => write!(f, "continue"),
+            TokenKind::Break => write!(f, "break"),
+            TokenKind::Return => write!(f, "return"),
+            TokenKind::If => write!(f, "if"),
+            TokenKind::Then => write!(f, "then"),
+            TokenKind::Else => write!(f, "else"),
+            TokenKind::While => write!(f, "while"),
+            TokenKind::Eq => write!(f, "="),
+            TokenKind::Op(s) => write!(f, "{}", s),
+            TokenKind::Error => write!(f, "Error"),
+            TokenKind::Newline => Ok(()),
         }
     }
 }
