@@ -2,6 +2,7 @@ use std::{fmt, ops::Range};
 
 use logos::Logos;
 
+#[derive(Debug, Clone)]
 pub struct Token<'a> {
     pub kind: TokenKind<'a>,
     pub span: Range<usize>,

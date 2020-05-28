@@ -34,6 +34,7 @@ fn main() {
                             if 2 then 3 else if True then 4 else 4
                           else a = 3
                                    24
+                               5
                           5";
     let lex = TokenKind::lexer(code).spanned();
     let tokens: Vec<Token<'_>> = lex
@@ -43,6 +44,12 @@ fn main() {
     let vec = Layout { tokens }.into_insensitive().expect(
         "J'suis en train de faire un proto donc j'utilise except
     ",
+    );
+    println!(
+        "{:#?}",
+        vec.iter()
+            .map(|Token { kind, .. }| kind)
+            .collect::<Vec<&'_ TokenKind<'_>>>()
     );
     pretty_print_tokens(vec.iter());
 }

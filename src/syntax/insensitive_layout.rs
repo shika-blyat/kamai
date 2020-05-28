@@ -184,3 +184,91 @@ impl TryFrom<&'_ TokenKind<'_>> for ContextOpener {
         })
     }
 }
+
+#[allow(unused_imports)]
+mod test {
+    use super::*;
+    use logos::Logos;
+    #[test]
+    fn complex_case() {
+        let tokens = vec![
+            TokenKind::Ident("a"),
+            TokenKind::Eq,
+            TokenKind::LBrace,
+            TokenKind::If,
+            TokenKind::Number(2),
+            TokenKind::Then,
+            TokenKind::LBrace,
+            TokenKind::If,
+            TokenKind::Number(2),
+            TokenKind::Then,
+            TokenKind::LBrace,
+            TokenKind::Number(3),
+            TokenKind::Semicolon,
+            TokenKind::RBrace,
+            TokenKind::Semicolon,
+            TokenKind::Else,
+            TokenKind::LBrace,
+            TokenKind::If,
+            TokenKind::Ident("True"),
+            TokenKind::Then,
+            TokenKind::LBrace,
+            TokenKind::Number(4),
+            TokenKind::Semicolon,
+            TokenKind::RBrace,
+            TokenKind::Semicolon,
+            TokenKind::Else,
+            TokenKind::LBrace,
+            TokenKind::Number(4),
+            TokenKind::Semicolon,
+            TokenKind::RBrace,
+            TokenKind::Semicolon,
+            TokenKind::RBrace,
+            TokenKind::Semicolon,
+            TokenKind::RBrace,
+            TokenKind::Semicolon,
+            TokenKind::Else,
+            TokenKind::LBrace,
+            TokenKind::Ident("a"),
+            TokenKind::Eq,
+            TokenKind::LBrace,
+            TokenKind::Number(3),
+            TokenKind::Semicolon,
+            TokenKind::Number(24),
+            TokenKind::Semicolon,
+            TokenKind::RBrace,
+            TokenKind::Semicolon,
+            TokenKind::Number(5),
+            TokenKind::Semicolon,
+            TokenKind::RBrace,
+            TokenKind::Semicolon,
+            TokenKind::Number(5),
+            TokenKind::Semicolon,
+            TokenKind::RBrace,
+            TokenKind::Semicolon,
+        ];
+        let code = "a = if 2 
+        then
+          if 2 then 3 else if True then 4 else 4
+        else a = 3
+                 24
+             5
+        5";
+        let test_tokens: Vec<Token<'_>> = TokenKind::lexer(code)
+            .spanned()
+            .into_iter()
+            .map(|(kind, span)| Token { kind, span })
+            .collect();
+        let vec: Vec<TokenKind<'_>> = Layout {
+            tokens: test_tokens,
+        }
+        .into_insensitive()
+        .unwrap()
+        .into_iter()
+        .map(|Token { kind, .. }| kind)
+        .collect();
+        for (tok1, tok2) in vec.into_iter().zip(tokens.into_iter()) {
+            assert_eq!(tok1, tok2)
+        }
+    }
+}
