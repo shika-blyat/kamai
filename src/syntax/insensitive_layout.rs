@@ -1,14 +1,15 @@
-// TODO replace `String`s by a real error type
-
 use std::convert::{TryFrom, TryInto};
 
-use super::tokens::{Token, TokenKind};
+use crate::{
+    errors::syntax_err::SyntaxErr,
+    syntax::tokens::{Token, TokenKind},
+};
 
 pub struct Layout<'a, I: IntoIterator<Item = Token<'a>>> {
     pub tokens: I,
 }
 impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
-    fn can_be_after_semicolon(tok: &TokenKind) -> Result<bool, String> {
+    fn can_be_after_semicolon(tok: &TokenKind) -> Result<bool, SyntaxErr<'a>> {
         match tok {
             TokenKind::Then => Ok(false),
             TokenKind::Op(_) => Ok(false), //todo handle ambiguity between `+` and `-` unary/binary by raising an error
@@ -18,12 +19,15 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
     fn can_close_instr(tok: &TokenKind) -> bool {
         debug_assert_ne!(tok, &TokenKind::Newline);
         match tok {
-            TokenKind::Op(_) | TokenKind::Eq | TokenKind::Else | TokenKind::Then => false,
+            TokenKind::Op(_)
+            | TokenKind::Eq
+            | TokenKind::Else
+            | TokenKind::Then
+            | TokenKind::Semicolon => false,
             _ => true,
         }
     }
-    // todo fix ranges used by inserted semicolons/braces
-    pub fn into_insensitive(self) -> Result<Vec<Token<'a>>, String> {
+    pub fn into_insensitive(self) -> Result<Vec<Token<'a>>, SyntaxErr<'a>> {
         let mut result_vec = vec![];
         let mut contexts = Contexts { stack: vec![] };
         let mut last_newline = 0;
@@ -46,7 +50,7 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
                         _ => {
                             can_close_instr = false;
                             result_vec.push(Token {
-                                span: 0..0,
+                                span: span.end..span.end,
                                 kind: TokenKind::Semicolon,
                             });
                         }
@@ -67,11 +71,11 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
                         newline: last_newline,
                     });
                     result_vec.push(Token {
-                        span: span.clone(),
+                        span: span.end..span.end,
                         kind,
                     });
                     result_vec.push(Token {
-                        span,
+                        span: span.end..span.end,
                         kind: TokenKind::LBrace,
                     });
                 }
@@ -83,15 +87,15 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
         }
         for _ in contexts.stack {
             result_vec.push(Token {
-                span: 0..0,
+                span: std::usize::MAX..std::usize::MAX,
                 kind: TokenKind::Semicolon,
             });
             result_vec.push(Token {
-                span: 0..0,
+                span: std::usize::MAX..std::usize::MAX,
                 kind: TokenKind::RBrace,
             });
             result_vec.push(Token {
-                span: 0..0,
+                span: std::usize::MAX..std::usize::MAX,
                 kind: TokenKind::Semicolon,
             });
         }
@@ -118,17 +122,17 @@ impl Contexts {
                 if can_close_instr {
                     vec.push(Token {
                         kind: TokenKind::Semicolon,
-                        span: 0..0,
+                        span: tok.span.end..tok.span.end,
                     });
                 }
                 vec.push(Token {
                     kind: TokenKind::RBrace,
-                    span: 0..0,
+                    span: tok.span.end..tok.span.end,
                 });
                 // After a right brace, we insert a `;`, because it's just easier for us in most cases
                 vec.push(Token {
                     kind: TokenKind::Semicolon,
-                    span: 0..0,
+                    span: tok.span.end..tok.span.end,
                 });
                 self.stack.pop();
             } else {
