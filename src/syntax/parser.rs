@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Operator {
     sym: &'static str,

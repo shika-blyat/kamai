@@ -6,7 +6,7 @@ pub struct Token<'a> {
     pub kind: TokenKind<'a>,
     pub span: Range<usize>,
 }
-#[derive(Logos, Debug, PartialEq)]
+#[derive(Logos, Debug, Clone, PartialEq)]
 pub enum TokenKind<'a> {
     #[regex("[0-9]+", |lex| lex.slice().parse())]
     Number(i64),
@@ -31,6 +31,9 @@ pub enum TokenKind<'a> {
 
     #[token("}")]
     RBrace,
+
+    #[token(";")]
+    Semicolon,
 
     #[token("fn")]
     Fn,
@@ -92,6 +95,7 @@ impl<'a> fmt::Display for TokenKind<'a> {
             TokenKind::Eq => write!(f, "="),
             TokenKind::Op(s) => write!(f, "{}", s),
             TokenKind::Error => write!(f, "Error"),
+            TokenKind::Semicolon => write!(f, ";"),
             TokenKind::Newline => Ok(()),
         }
     }

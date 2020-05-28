@@ -4,14 +4,8 @@ mod errors;
 mod syntax;
 mod utils;
 
-use std::{
-    io::{self, Write},
-    ops::Range,
-};
+use logos::Logos;
 
-use logos::{Lexer, Logos};
-
-use errors::syntax_err;
 use syntax::{
     insensitive_layout::into_insensitive,
     tokens::{Token, TokenKind},
@@ -37,7 +31,7 @@ fn pretty_print_tokens<'a>(tokens: impl IntoIterator<Item = &'a Token<'a>>) {
 fn main() {
     let code = "a = if 2 
                           then
-                            if 2 then 3
+                            if 2 then 3 else 4
                           else a = 3
                                    24
                           5";
