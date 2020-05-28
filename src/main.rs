@@ -7,7 +7,7 @@ mod utils;
 use logos::Logos;
 
 use syntax::{
-    insensitive_layout::into_insensitive,
+    insensitive_layout::Layout,
     tokens::{Token, TokenKind},
 };
 
@@ -31,7 +31,7 @@ fn pretty_print_tokens<'a>(tokens: impl IntoIterator<Item = &'a Token<'a>>) {
 fn main() {
     let code = "a = if 2 
                           then
-                            if 2 then 3 else 4
+                            if 2 then 3 else if True then 4 else 4
                           else a = 3
                                    24
                           5";
@@ -40,7 +40,7 @@ fn main() {
         .into_iter()
         .map(|(kind, span)| Token { kind, span })
         .collect();
-    let vec = into_insensitive(tokens).expect(
+    let vec = Layout { tokens }.into_insensitive().expect(
         "J'suis en train de faire un proto donc j'utilise except
     ",
     );
