@@ -41,10 +41,7 @@ fn main() {
         .into_iter()
         .map(|(kind, span)| Token { kind, span })
         .collect();
-    let vec = Layout { tokens }.into_insensitive().expect(
-        "J'suis en train de faire un proto donc j'utilise except
-    ",
-    );
+    let vec = Layout::new(tokens).into_insensitive().unwrap();
     println!(
         "{:#?}",
         vec.iter()

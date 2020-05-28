@@ -6,26 +6,11 @@ use crate::{
 };
 
 pub struct Layout<'a, I: IntoIterator<Item = Token<'a>>> {
-    pub tokens: I,
+    tokens: I,
 }
 impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
-    fn can_be_after_semicolon(tok: &TokenKind) -> Result<bool, SyntaxErr<'a>> {
-        match tok {
-            TokenKind::Then => Ok(false),
-            TokenKind::Op(_) => Ok(false), //todo handle ambiguity between `+` and `-` unary/binary by raising an error
-            _ => Ok(true),
-        }
-    }
-    fn can_close_instr(tok: &TokenKind) -> bool {
-        debug_assert_ne!(tok, &TokenKind::Newline);
-        match tok {
-            TokenKind::Op(_)
-            | TokenKind::Eq
-            | TokenKind::Else
-            | TokenKind::Then
-            | TokenKind::Semicolon => false,
-            _ => true,
-        }
+    pub fn new(tokens: I) -> Self {
+        Self { tokens }
     }
     pub fn into_insensitive(self) -> Result<Vec<Token<'a>>, SyntaxErr<'a>> {
         let mut result_vec = vec![];
@@ -37,16 +22,14 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
         while let Some(tok) = iterator.next() {
             contexts.close_contexts(&mut result_vec, &tok, last_newline, can_close_instr);
             let Token { kind, span } = tok;
-            match kind {
+            match &kind {
                 TokenKind::Newline => {
                     last_newline = span.start;
                     match iterator.peek() {
                         // Yes it's ugly, it just does nothing if we're not supposed to close the current instruction, any improvements are welcome :)
+                        #[rustfmt::skip]
                         Some(tok)
-                            if !(Self::can_be_after_semicolon(&tok.kind)? && can_close_instr) =>
-                        {
-                            ()
-                        }
+                            if !Self::can_be_after_semicolon(&tok.kind)? || !can_close_instr => (),
                         _ => {
                             can_close_instr = false;
                             result_vec.push(Token {
@@ -56,7 +39,7 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
                         }
                     }
                 }
-                kind @ (TokenKind::Then | TokenKind::Else | TokenKind::Eq) => {
+                TokenKind::Then | TokenKind::Else | TokenKind::Eq => {
                     can_close_instr = Self::can_close_instr(&kind);
                     let column = match &kind {
                         TokenKind::Eq => match iterator.peek() {
@@ -79,7 +62,7 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
                         kind: TokenKind::LBrace,
                     });
                 }
-                kind => {
+                _ => {
                     can_close_instr = Self::can_close_instr(&kind);
                     result_vec.push(Token { span, kind })
                 }
@@ -100,6 +83,24 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
             });
         }
         Ok(result_vec)
+    }
+    fn can_be_after_semicolon(tok: &TokenKind) -> Result<bool, SyntaxErr<'a>> {
+        match tok {
+            TokenKind::Then => Ok(false),
+            TokenKind::Op(_) => Ok(false), //todo handle ambiguity between `+` and `-` unary/binary by raising an error
+            _ => Ok(true),
+        }
+    }
+    fn can_close_instr(tok: &TokenKind) -> bool {
+        debug_assert_ne!(tok, &TokenKind::Newline);
+        match tok {
+            TokenKind::Op(_)
+            | TokenKind::Eq
+            | TokenKind::Else
+            | TokenKind::Then
+            | TokenKind::Semicolon => false,
+            _ => true,
+        }
     }
 }
 
@@ -259,14 +260,12 @@ mod test {
             .into_iter()
             .map(|(kind, span)| Token { kind, span })
             .collect();
-        let vec: Vec<TokenKind<'_>> = Layout {
-            tokens: test_tokens,
-        }
-        .into_insensitive()
-        .unwrap()
-        .into_iter()
-        .map(|Token { kind, .. }| kind)
-        .collect();
+        let vec: Vec<TokenKind<'_>> = Layout::new(test_tokens)
+            .into_insensitive()
+            .unwrap()
+            .into_iter()
+            .map(|Token { kind, .. }| kind)
+            .collect();
         for (tok1, tok2) in vec.into_iter().zip(tokens.into_iter()) {
             assert_eq!(tok1, tok2)
         }
