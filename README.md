@@ -18,7 +18,7 @@ Yes, Kamai is Rust with : currying, a built in GC and, probably, a locally space
 
 ## Goals
 
-I'd love to bootstrap the interpreter/compiler, write some graphics application and maybe even a small kernel at some point. Oh and for the things that could reasonably happen in a near future, a working interpreter would already be really cool 
+I'd love to bootstrap the interpreter/compiler, write some graphics application and maybe even a small kernel at some point. Oh and for the things that could reasonably happen in a near future, a working interpreter would already be really cool.
 
 ## Example
 
