@@ -29,13 +29,9 @@ fn pretty_print_tokens<'a>(tokens: impl IntoIterator<Item = &'a Token<'a>>) {
     }
 }
 fn main() {
-    let code = "a = if 2 
-                          then
-                            if 2 then 3 else if True then 4 else 4
-                          else a = 3
-                                   24
-                               5
-                          5";
+    let code = "a = 1 + 2
+                            * 3
+                          if 2 then a else b";
     let lex = TokenKind::lexer(code).spanned();
     let tokens: Vec<Token<'_>> = lex
         .into_iter()

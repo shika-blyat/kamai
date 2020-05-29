@@ -1,3 +1,4 @@
+// TODO track the column of the last instruction and use it to disambiguate and restrict layout's rule
 use std::convert::{TryFrom, TryInto};
 
 use crate::{
@@ -8,63 +9,77 @@ use crate::{
 pub struct Layout<'a, I: IntoIterator<Item = Token<'a>>> {
     tokens: I,
 }
-impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
+impl<'a, I> Layout<'a, I>
+where
+    I: IntoIterator<Item = Token<'a>>,
+{
     pub fn new(tokens: I) -> Self {
         Self { tokens }
     }
     pub fn into_insensitive(self) -> Result<Vec<Token<'a>>, SyntaxErr<'a>> {
         let mut result_vec = vec![];
         let mut contexts = Contexts { stack: vec![] };
-        let mut last_newline = 0;
-        let mut can_close_instr = false;
-
+        let mut layout_state = LayoutState {
+            last_newline: 0,
+            can_close_instr: false,
+            just_closed: true,
+            last_opened_instr_column: 0,
+        };
         let mut iterator = self.tokens.into_iter().peekable();
         while let Some(tok) = iterator.next() {
-            contexts.close_contexts(&mut result_vec, &tok, last_newline, can_close_instr);
+            contexts.close_contexts(&mut result_vec, &tok, &mut layout_state);
             let Token { kind, span } = tok;
             match &kind {
                 TokenKind::Newline => {
-                    last_newline = span.start;
-                    match iterator.peek() {
-                        // Yes it's ugly, it just does nothing if we're not supposed to close the current instruction, any improvements are welcome :)
-                        #[rustfmt::skip]
-                        Some(tok)
-                            if !Self::can_be_after_semicolon(&tok.kind)? || !can_close_instr => (),
-                        _ => {
-                            can_close_instr = false;
-                            result_vec.push(Token {
-                                span: span.end..span.end,
-                                kind: TokenKind::Semicolon,
-                            });
-                        }
+                    layout_state.last_newline = span.start;
+                    if iterator.peek().is_none()
+                        || (Self::can_be_after_semicolon(&iterator.peek().unwrap().kind)?
+                            && layout_state.can_close_instr)
+                    {
+                        layout_state.can_close_instr = false;
+                        layout_state.just_closed = true;
+                        result_vec.push(Token {
+                            span: span.end..span.end,
+                            kind: TokenKind::Semicolon,
+                        });
                     }
                 }
                 TokenKind::Then | TokenKind::Else | TokenKind::Eq => {
-                    can_close_instr = Self::can_close_instr(&kind);
                     let column = match &kind {
                         TokenKind::Eq => match iterator.peek() {
-                            Some(Token { span, .. }) => span.start - last_newline,
-                            None => span.end - last_newline,
+                            Some(Token { span, .. }) => span.start - layout_state.last_newline,
+                            None => span.end - layout_state.last_newline,
                         },
-                        _ => span.start - last_newline,
+                        _ => span.start - layout_state.last_newline,
                     };
+                    Self::update_layout(
+                        &mut layout_state,
+                        Token {
+                            kind: kind.clone(),
+                            span: span.clone(),
+                        },
+                    );
                     contexts.push(Context {
-                        opener: (&kind).try_into().unwrap(),
+                        opener: (&kind).try_into().expect(
+                            format!("Failed to convert to ContextOpener a {:#?}", kind).as_str(),
+                        ),
                         column,
-                        newline: last_newline,
+                        newline: layout_state.last_newline,
                     });
+                    let span = span.end..span.end;
                     result_vec.push(Token {
-                        span: span.end..span.end,
+                        span: span.clone(),
                         kind,
                     });
                     result_vec.push(Token {
-                        span: span.end..span.end,
+                        span,
                         kind: TokenKind::LBrace,
                     });
                 }
                 _ => {
-                    can_close_instr = Self::can_close_instr(&kind);
-                    result_vec.push(Token { span, kind })
+                    let tok = Token { span, kind };
+                    Self::update_layout(&mut layout_state, tok.clone());
+                    result_vec.push(tok)
                 }
             }
         }
@@ -83,6 +98,13 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
             });
         }
         Ok(result_vec)
+    }
+    fn update_layout(layout: &mut LayoutState, tok: Token) {
+        layout.can_close_instr = Self::can_close_instr(&tok.kind);
+        if layout.just_closed {
+            layout.last_opened_instr_column = tok.span.start - layout.last_newline;
+            layout.just_closed = false;
+        }
     }
     fn can_be_after_semicolon(tok: &TokenKind) -> Result<bool, SyntaxErr<'a>> {
         match tok {
@@ -104,6 +126,14 @@ impl<'a, I: IntoIterator<Item = Token<'a>>> Layout<'a, I> {
     }
 }
 
+pub struct LayoutState {
+    pub just_closed: bool,
+    pub can_close_instr: bool,
+    pub last_opened_instr_column: usize,
+    pub last_newline: usize,
+}
+impl LayoutState {}
+
 pub struct Contexts {
     pub stack: Vec<Context>,
 }
@@ -113,28 +143,30 @@ impl Contexts {
         &mut self,
         vec: &mut Vec<Token>,
         tok: &Token,
-        newline: usize,
-        can_close_instr: bool,
+        layout_state: &mut LayoutState,
     ) {
         while let Some(ctx) = self.stack.last() {
-            if ctx.is_closed_by(&tok.kind, tok.span.start, newline) {
+            if ctx.is_closed_by(&tok.kind, tok.span.start, layout_state.last_newline) {
                 // if the instr can be closed and we push a `}`, we should push an enclosing `;`
                 // However, it's usually not the case, because there was already a newline before the token triggering the closing of the instruction.
-                if can_close_instr {
+                let span = tok.span.end..tok.span.end;
+                if layout_state.can_close_instr {
                     vec.push(Token {
                         kind: TokenKind::Semicolon,
-                        span: tok.span.end..tok.span.end,
+                        span: span.clone(),
                     });
                 }
                 vec.push(Token {
                     kind: TokenKind::RBrace,
-                    span: tok.span.end..tok.span.end,
+                    span: span.clone(),
                 });
                 // After a right brace, we insert a `;`, because it's just easier for us in most cases
                 vec.push(Token {
                     kind: TokenKind::Semicolon,
-                    span: tok.span.end..tok.span.end,
+                    span,
                 });
+                layout_state.just_closed = true;
+                layout_state.can_close_instr = false;
                 self.stack.pop();
             } else {
                 break;
