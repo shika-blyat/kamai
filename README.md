@@ -14,7 +14,7 @@ It's still in its extremely early stage, and even the goals/planned features are
 - [ ] Typeclasses/Traits and HKTs
 - [ ] Mutability restriction, mainly based on Rust rules (but I'm not sure if whether or not Kamai rules will be exactly the same as Rust's)
 
-Yes, Kamai is Rust with : currying, a built in GC and, probably, a locally space sensitive syntax. And I'll probably remove some things from this list and add new fancy features at some point, but for the moment that's how the list looks like. I'll try to update it as often as I think about it. 
+Yes, Kamai is Rust with: currying, a built in GC and, probably, a locally space sensitive syntax. And I'll probably remove some things from this list and add new fancy features at some point, but for the moment that's how the list looks like. I'll try to update it as often as I think about it. 
 
 ## Goals
 
